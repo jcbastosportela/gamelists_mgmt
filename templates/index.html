@@ -470,6 +470,8 @@
             background: var(--bg-primary);
             padding: 10px 14px;
             border-radius: 8px;
+            display: flex;
+            flex-direction: column;
         }
 
         .meta-item .label {
@@ -483,6 +485,96 @@
         .meta-item .value {
             font-size: 0.9rem;
             font-weight: 500;
+        }
+
+        .meta-item input, .meta-item select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            padding: 5px 8px;
+            outline: none;
+            width: 100%;
+            transition: border-color 0.15s;
+        }
+
+        .meta-item input:focus, .meta-item select:focus {
+            border-color: var(--accent);
+        }
+
+        .meta-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            align-self: flex-start;
+        }
+
+        .detail-edit-title {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 700;
+            padding: 10px 14px;
+            width: 100%;
+            outline: none;
+            margin-bottom: 6px;
+            transition: border-color 0.15s;
+        }
+
+        .detail-edit-title:focus { border-color: var(--accent); }
+
+        .detail-edit-path {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            padding: 7px 12px;
+            width: 100%;
+            outline: none;
+            margin-bottom: 12px;
+            transition: border-color 0.15s;
+        }
+
+        .detail-edit-path:focus { border-color: var(--accent); }
+
+        .detail-desc textarea {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.88rem;
+            line-height: 1.5;
+            padding: 10px 12px;
+            width: 100%;
+            min-height: 100px;
+            resize: vertical;
+            outline: none;
+            font-family: inherit;
+            transition: border-color 0.15s;
+        }
+
+        .detail-desc textarea:focus { border-color: var(--accent); }
+
+        .save-bar {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .save-bar button {
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
         }
 
         .detail-desc {
@@ -566,6 +658,491 @@
             transform: translateY(0);
             opacity: 1;
         }
+
+        /* Image Editor */
+        .img-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .img-actions button {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-weight: 500;
+        }
+
+        .img-actions button:hover {
+            border-color: var(--accent);
+            background: var(--bg-hover);
+        }
+
+        .img-actions button.danger:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .img-editor-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 200;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(6px);
+        }
+
+        .img-editor-overlay.open { display: flex; }
+
+        .img-editor {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            width: 560px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .img-editor-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .img-editor-header h3 { font-size: 1.1rem; }
+
+        .img-editor-header .close-btn {
+            background: var(--bg-primary);
+            border: none;
+            color: var(--text-primary);
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .img-editor-header .close-btn:hover { background: var(--danger); }
+
+        .img-editor-body {
+            padding: 20px 24px;
+        }
+
+        .img-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .img-tab {
+            flex: 1;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.15s;
+            text-align: center;
+        }
+
+        .img-tab.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .img-tab:hover:not(.active) { background: var(--bg-hover); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(124, 92, 252, 0.05);
+        }
+
+        .drop-zone .icon { font-size: 2.5rem; margin-bottom: 8px; opacity: 0.5; }
+        .drop-zone p { color: var(--text-secondary); font-size: 0.85rem; }
+        .drop-zone .browse-link { color: var(--accent); text-decoration: underline; cursor: pointer; }
+
+        .drop-zone-preview {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .drop-zone-preview img {
+            width: 80px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .drop-zone-preview .info { flex: 1; }
+        .drop-zone-preview .info .name { font-size: 0.85rem; font-weight: 600; }
+        .drop-zone-preview .info .size { font-size: 0.75rem; color: var(--text-secondary); }
+
+        .drop-zone-preview .remove-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px;
+        }
+
+        .url-input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .url-input-group input {
+            flex: 1;
+            padding: 10px 14px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .url-input-group input:focus { border-color: var(--accent); }
+
+        .url-preview {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .url-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+
+        .file-browser {
+            max-height: 300px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 8px;
+        }
+
+        .file-browser .file-item {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.15s;
+            position: relative;
+            background: var(--bg-primary);
+        }
+
+        .file-browser .file-item:hover { border-color: var(--accent); }
+        .file-browser .file-item.selected { border-color: var(--success); }
+
+        .file-browser .file-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .file-browser .file-item .fname {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.75);
+            color: white;
+            font-size: 0.65rem;
+            padding: 3px 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .editor-actions button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover { background: var(--accent-light); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover { border-color: var(--text-secondary); }
+
+        /* Import Modal */
+        .rom-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .rom-list-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .rom-list-item:last-child { border-bottom: none; }
+        .rom-list-item:hover { background: var(--bg-hover); }
+        .rom-list-item.selected { background: rgba(124, 92, 252, 0.15); border-left: 3px solid var(--accent); }
+        .rom-list-item.listed { opacity: 0.45; }
+
+        .rom-list-item .rom-info { flex: 1; min-width: 0; }
+        .rom-list-item .rom-info .rom-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rom-list-item .rom-info .rom-path { font-size: 0.72rem; color: var(--text-muted); }
+        .rom-list-item .rom-size { font-size: 0.75rem; color: var(--text-secondary); flex-shrink: 0; }
+        .rom-list-item .rom-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+        .rom-list-item .rom-badge.added { background: var(--success); color: #000; }
+
+        .rom-filter-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .rom-filter-row input {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .rom-filter-row input:focus { border-color: var(--accent); }
+
+        .rom-filter-row label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .subdir-input {
+            margin-bottom: 12px;
+        }
+
+        .subdir-input label {
+            display: block;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .subdir-input input {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .subdir-input input:focus { border-color: var(--accent); }
+        .subdir-input .hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; }
+
+        /* Favorite & Delete */
+        .detail-actions-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .fav-btn {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+        }
+
+        .fav-btn:hover { border-color: var(--warning); color: var(--warning); }
+        .fav-btn.active { background: var(--warning); color: #000; border-color: var(--warning); }
+
+        .delete-game-btn {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            margin-left: auto;
+        }
+
+        .delete-game-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+        .edit-btn {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.15s;
+            color: var(--text-secondary);
+        }
+
+        .edit-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* Confirm Dialog */
+        .confirm-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 300;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(6px);
+        }
+
+        .confirm-overlay.open { display: flex; }
+
+        .confirm-box {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 28px;
+            width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .confirm-box h3 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .confirm-box p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .confirm-box .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .confirm-box .checkbox-row input[type="checkbox"] {
+            accent-color: var(--danger);
+            width: 16px;
+            height: 16px;
+        }
+
+        .confirm-box .confirm-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .confirm-box .confirm-actions button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            border: none;
+        }
+
+        .btn-danger:hover { background: #c04040; }
     </style>
 </head>
 <body>
@@ -589,6 +1166,7 @@
                 <h2 id="systemTitle"></h2>
                 <span class="game-count" id="gameCount"></span>
                 <div class="spacer"></div>
+                <button class="toolbar-btn" onclick="openImportModal()" style="padding:7px 14px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap">➕ Import ROM</button>
                 <div class="search-box">
                     <input type="text" id="gameSearch" placeholder="Search games...">
                 </div>
@@ -614,6 +1192,154 @@
 
     <!-- Toast -->
     <div class="toast" id="toast"></div>
+
+    <!-- Image Editor Overlay -->
+    <div class="img-editor-overlay" id="imgEditorOverlay" onclick="if(event.target===this)closeImgEditor()">
+        <div class="img-editor">
+            <div class="img-editor-header">
+                <h3 id="imgEditorTitle">🖼️ Edit Image</h3>
+                <button class="close-btn" onclick="closeImgEditor()">✕</button>
+            </div>
+            <div class="img-editor-body">
+                <div class="img-tabs">
+                    <button class="img-tab active" data-tab="upload" onclick="switchImgTab('upload')">📁 Upload</button>
+                    <button class="img-tab" data-tab="url" onclick="switchImgTab('url')">🌐 URL</button>
+                    <button class="img-tab" data-tab="browse" onclick="switchImgTab('browse')">📂 Browse ROMs</button>
+                </div>
+
+                <!-- Upload tab -->
+                <div class="tab-content active" id="tab-upload">
+                    <div class="drop-zone" id="dropZone">
+                        <div class="icon">📤</div>
+                        <p>Drag & drop an image here, or <span class="browse-link">browse files</span></p>
+                        <p style="font-size:0.75rem;margin-top:4px;color:var(--text-muted)">PNG, JPG, GIF, WebP, BMP</p>
+                    </div>
+                    <div class="drop-zone-preview" id="uploadPreview" style="display:none">
+                        <img id="uploadPreviewImg" src="">
+                        <div class="info">
+                            <div class="name" id="uploadFileName"></div>
+                            <div class="size" id="uploadFileSize"></div>
+                        </div>
+                        <button class="remove-btn" onclick="clearUpload()">✕</button>
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*" style="display:none">
+                </div>
+
+                <!-- URL tab -->
+                <div class="tab-content" id="tab-url">
+                    <div class="url-input-group">
+                        <input type="url" id="imageUrlInput" placeholder="https://example.com/image.png">
+                        <button class="btn-primary" onclick="previewUrl()" style="padding:10px 16px">Preview</button>
+                    </div>
+                    <div class="url-preview" id="urlPreview" style="display:none">
+                        <img id="urlPreviewImg" src="">
+                    </div>
+                </div>
+
+                <!-- Browse tab -->
+                <div class="tab-content" id="tab-browse">
+                    <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:12px">
+                        Select an existing image from the ROM filesystem:
+                    </p>
+                    <div class="file-browser" id="fileBrowser">
+                        <div class="loading"><div class="spinner"></div></div>
+                    </div>
+                </div>
+
+                <div class="editor-actions">
+                    <button class="btn-secondary" onclick="closeImgEditor()">Cancel</button>
+                    <button class="btn-primary" id="applyImageBtn" onclick="applyImage()" disabled>Apply Image</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import ROM Overlay -->
+    <div class="img-editor-overlay" id="importOverlay" onclick="if(event.target===this)closeImportModal()">
+        <div class="img-editor" style="width:640px">
+            <div class="img-editor-header">
+                <h3>➕ Import ROM</h3>
+                <button class="close-btn" onclick="closeImportModal()">✕</button>
+            </div>
+            <div class="img-editor-body">
+                <div class="img-tabs">
+                    <button class="img-tab active" data-tab="ifile" onclick="switchImportTab('ifile')">📂 From Filesystem</button>
+                    <button class="img-tab" data-tab="iupload" onclick="switchImportTab('iupload')">📁 Upload File</button>
+                    <button class="img-tab" data-tab="iurl" onclick="switchImportTab('iurl')">🌐 From URL</button>
+                </div>
+
+                <!-- Filesystem tab -->
+                <div class="tab-content active" id="tab-ifile">
+                    <div class="rom-filter-row">
+                        <input type="text" id="romFilter" placeholder="Filter ROMs...">
+                        <label><input type="checkbox" id="romHideAdded" checked> Hide listed</label>
+                    </div>
+                    <div class="rom-list" id="romList">
+                        <div class="loading"><div class="spinner"></div></div>
+                    </div>
+                    <p id="romSelection" style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px">Select a ROM to import</p>
+                </div>
+
+                <!-- Upload tab -->
+                <div class="tab-content" id="tab-iupload">
+                    <div class="drop-zone" id="importDropZone">
+                        <div class="icon">📦</div>
+                        <p>Drag & drop a ROM file here, or <span class="browse-link">browse files</span></p>
+                        <p style="font-size:0.75rem;margin-top:4px;color:var(--text-muted)">ZIP, NES, SFC, GBA, N64, ISO, and many more</p>
+                    </div>
+                    <div class="drop-zone-preview" id="importUploadPreview" style="display:none">
+                        <div style="font-size:2rem">📦</div>
+                        <div class="info">
+                            <div class="name" id="importFileName"></div>
+                            <div class="size" id="importFileSize"></div>
+                        </div>
+                        <button class="remove-btn" onclick="clearImportUpload()">✕</button>
+                    </div>
+                    <input type="file" id="importFileInput" style="display:none">
+                    <div class="subdir-input">
+                        <label>Subfolder (optional)</label>
+                        <input type="text" id="importSubdirUpload" placeholder="e.g. mario_collection">
+                        <div class="hint">ROM will be placed in this subfolder within the system directory</div>
+                    </div>
+                </div>
+
+                <!-- URL tab -->
+                <div class="tab-content" id="tab-iurl">
+                    <div class="url-input-group">
+                        <input type="url" id="romUrlInput" placeholder="https://example.com/game.zip">
+                    </div>
+                    <div class="subdir-input">
+                        <label>Subfolder (optional)</label>
+                        <input type="text" id="importSubdirUrl" placeholder="e.g. mario_collection">
+                        <div class="hint">ROM will be placed in this subfolder within the system directory</div>
+                    </div>
+                </div>
+
+                <div class="editor-actions">
+                    <button class="btn-secondary" onclick="closeImportModal()">Cancel</button>
+                    <button class="btn-primary" id="importBtn" onclick="importRom()" disabled>Import ROM</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div class="confirm-overlay" id="confirmOverlay">
+        <div class="confirm-box">
+            <h3 id="confirmTitle">⚠️ Confirm</h3>
+            <p id="confirmMessage"></p>
+            <div id="confirmExtra" style="display:none">
+                <div class="checkbox-row">
+                    <input type="checkbox" id="confirmDeleteFiles">
+                    <label for="confirmDeleteFiles">Also delete ROM and media files from disk</label>
+                </div>
+            </div>
+            <div class="confirm-actions">
+                <button class="btn-secondary" onclick="closeConfirm()">Cancel</button>
+                <button class="btn-danger" id="confirmOkBtn" onclick="confirmOk()">Confirm</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         let systems = [];
@@ -722,9 +1448,9 @@
 
             const panel = document.getElementById('detailPanel');
             const mediaItems = [];
-            if (game.image) mediaItems.push({ type: 'image', src: game.image, label: '🖼️ Screenshot' });
-            if (game.thumbnail) mediaItems.push({ type: 'image', src: game.thumbnail, label: '🖼️ Thumb' });
-            if (game.mix) mediaItems.push({ type: 'image', src: game.mix, label: '🖼️ Mix' });
+            if (game.image) mediaItems.push({ type: 'image', src: game.image, label: '🖼️ Screenshot', field: 'image' });
+            if (game.thumbnail) mediaItems.push({ type: 'image', src: game.thumbnail, label: '🖼️ Thumb', field: 'thumbnail' });
+            if (game.mix) mediaItems.push({ type: 'image', src: game.mix, label: '🖼️ Mix', field: 'mix' });
             if (game.video) {
                 const ext = game.video.split('.').pop().split('?')[0].toLowerCase();
                 const playable = ['mp4', 'webm', 'ogg', 'ogv'].includes(ext);
@@ -748,32 +1474,120 @@
                 : '<div style="font-size:4rem;opacity:0.2">🎮</div>';
 
             const metaFields = [
-                { key: 'genre', label: 'Genre' },
-                { key: 'developer', label: 'Developer' },
-                { key: 'publisher', label: 'Publisher' },
-                { key: 'releasedate', label: 'Release Date', format: formatDate },
-                { key: 'players', label: 'Players' },
-                { key: 'rating', label: 'Rating', format: v => `⭐ ${parseFloat(v).toFixed(1)}` },
-                { key: 'lang', label: 'Language' },
-                { key: 'region', label: 'Region' },
-                { key: 'playcount', label: 'Play Count' },
-                { key: 'lastplayed', label: 'Last Played', format: formatDate },
-                { key: 'gametime', label: 'Game Time', format: v => `${Math.floor(v/60)}h ${v%60}m` },
-                { key: 'favorite', label: 'Favorite' },
+                { key: 'genre', label: 'Genre', type: 'text' },
+                { key: 'developer', label: 'Developer', type: 'text' },
+                { key: 'publisher', label: 'Publisher', type: 'text' },
+                { key: 'releasedate', label: 'Release Date', type: 'date' },
+                { key: 'players', label: 'Players', type: 'text' },
+                { key: 'rating', label: 'Rating (0-1)', type: 'number', attrs: 'min="0" max="1" step="0.1"' },
+                { key: 'lang', label: 'Language', type: 'text' },
+                { key: 'region', label: 'Region', type: 'text' },
+                { key: 'sortname', label: 'Sort Name', type: 'text' },
+                { key: 'playcount', label: 'Play Count', type: 'number', attrs: 'min="0"' },
+                { key: 'lastplayed', label: 'Last Played', type: 'date' },
+                { key: 'gametime', label: 'Game Time (sec)', type: 'number', attrs: 'min="0"' },
+                { key: 'emulator', label: 'Emulator', type: 'text' },
+                { key: 'core', label: 'Core', type: 'text' },
+                { key: 'hash', label: 'Hash (CRC32)', type: 'text' },
+                { key: 'web', label: 'Web', type: 'text' },
+                { key: 'system', label: 'System', type: 'text' },
+                { key: 'software', label: 'Software', type: 'text' },
+                { key: 'provider', label: 'Provider', type: 'text' },
+                { key: 'hidden', label: 'Hidden', type: 'checkbox' },
             ];
 
-            const metaHtml = metaFields
+            const toInputDate = (v) => {
+                if (!v) return '';
+                const m = v.match(/^(\d{4})(\d{2})(\d{2})/);
+                return m ? `${m[1]}-${m[2]}-${m[3]}` : v;
+            };
+
+            // View mode: only show fields that have values, read-only
+            const viewMetaHtml = metaFields
                 .filter(f => game[f.key])
-                .map(f => `
-                    <div class="meta-item">
-                        <div class="label">${f.label}</div>
-                        <div class="value">${f.format ? f.format(game[f.key]) : escapeHtml(game[f.key])}</div>
-                    </div>
-                `).join('');
+                .map(f => {
+                    let display;
+                    if (f.type === 'checkbox') display = '✓';
+                    else if (f.type === 'date') display = toInputDate(game[f.key]);
+                    else if (f.key === 'gametime') { const v = parseInt(game[f.key]); display = `${Math.floor(v/60)}h ${v%60}m`; }
+                    else if (f.type === 'number' && f.key === 'rating') display = `⭐ ${parseFloat(game[f.key]).toFixed(1)}`;
+                    else display = escapeHtml(game[f.key]);
+                    return `<div class="meta-item"><div class="label">${f.label}</div><div class="value">${display}</div></div>`;
+                }).join('');
+
+            // Edit mode: show all fields as inputs
+            const editMetaHtml = metaFields.map(f => {
+                const raw = game[f.key] || '';
+                let inputHtml;
+                if (f.type === 'checkbox') {
+                    inputHtml = `<input type="checkbox" id="edit_${f.key}" ${raw === 'true' ? 'checked' : ''}>`;
+                } else if (f.type === 'date') {
+                    inputHtml = `<input type="date" id="edit_${f.key}" value="${escapeHtml(toInputDate(raw))}">`;
+                } else if (f.type === 'number') {
+                    inputHtml = `<input type="number" id="edit_${f.key}" value="${escapeHtml(raw)}" ${f.attrs || ''}>`;
+                } else {
+                    inputHtml = `<input type="text" id="edit_${f.key}" value="${escapeHtml(raw)}" placeholder="—">`;
+                }
+                return `<div class="meta-item"><div class="label">${f.label}</div>${inputHtml}</div>`;
+            }).join('');
 
             // Store media items globally so switchMedia can access them safely
             window._mediaItems = mediaItems;
+            window._currentGameId = gameId;
 
+            // View mode HTML
+            const viewBody = `
+                <h2 style="font-size:1.4rem;font-weight:700;margin-bottom:4px">${escapeHtml(game.name || '')}</h2>
+                <div class="subtitle">${escapeHtml(game.path || '')}</div>
+                <div class="detail-actions-bar">
+                    <button class="fav-btn ${game.favorite === 'true' ? 'active' : ''}" onclick="toggleFavorite(${game.id}, this)">
+                        ${game.favorite === 'true' ? '⭐' : '☆'} Favorite
+                    </button>
+                    <button class="edit-btn" onclick="switchToEdit()">✏️ Edit</button>
+                    <button class="delete-game-btn" onclick="confirmDeleteGame(${game.id}, '${escapeHtml(game.name || '')}')">
+                        🗑️ Remove from List
+                    </button>
+                </div>
+                ${game.desc ? `<div class="detail-desc"><div class="label">Description</div>${escapeHtml(game.desc)}</div>` : ''}
+                ${viewMetaHtml ? `<div class="detail-meta" style="margin-top:16px">${viewMetaHtml}</div>` : ''}
+            `;
+
+            // Edit mode HTML
+            const editBody = `
+                <input class="detail-edit-title" id="edit_name" value="${escapeHtml(game.name || '')}" placeholder="Game Name">
+                <input class="detail-edit-path" value="${escapeHtml(game.path || '')}" readonly title="ROM path (not editable)">
+                <div class="detail-actions-bar">
+                    <button class="fav-btn ${game.favorite === 'true' ? 'active' : ''}" onclick="toggleFavorite(${game.id}, this)">
+                        ${game.favorite === 'true' ? '⭐' : '☆'} Favorite
+                    </button>
+                    <button class="delete-game-btn" onclick="confirmDeleteGame(${game.id}, '${escapeHtml(game.name || '')}')">
+                        🗑️ Remove from List
+                    </button>
+                </div>
+                <div class="img-actions">
+                    <button onclick="openImgEditor('image', ${game.id})">🖼️ ${game.image ? 'Replace' : 'Add'} Image</button>
+                    <button onclick="openImgEditor('thumbnail', ${game.id})">🖼️ ${game.thumbnail ? 'Replace' : 'Add'} Thumbnail</button>
+                    <button onclick="openImgEditor('mix', ${game.id})">🖼️ ${game.mix ? 'Replace' : 'Add'} Mix</button>
+                    ${game.image ? `<button class="danger" onclick="removeImage('image', ${game.id})">🗑️ Remove Image</button>` : ''}
+                    ${game.thumbnail ? `<button class="danger" onclick="removeImage('thumbnail', ${game.id})">🗑️ Remove Thumb</button>` : ''}
+                    ${game.mix ? `<button class="danger" onclick="removeImage('mix', ${game.id})">🗑️ Remove Mix</button>` : ''}
+                </div>
+                <div class="detail-meta">${editMetaHtml}</div>
+                <div class="detail-desc">
+                    <div class="label">Description</div>
+                    <textarea id="edit_desc" placeholder="Enter game description...">${escapeHtml(game.desc || '')}</textarea>
+                </div>
+                <div class="save-bar">
+                    <button class="btn-secondary" onclick="switchToView(${game.id})">Cancel</button>
+                    <button class="btn-primary" onclick="saveGameDetails(${game.id})">💾 Save Changes</button>
+                </div>
+            `;
+
+            // Store both views for toggling
+            window._viewBody = viewBody;
+            window._editBody = editBody;
+
+            // Render body container
             panel.innerHTML = `
                 <button class="detail-close" onclick="closeDetail()">✕</button>
                 <div class="detail-media">
@@ -790,17 +1604,7 @@
                         </div>
                     ` : ''}
                 </div>
-                <div class="detail-body">
-                    <h2>${escapeHtml(game.name || '')}</h2>
-                    <div class="subtitle">${escapeHtml(game.path || '')}</div>
-                    ${metaHtml ? `<div class="detail-meta">${metaHtml}</div>` : ''}
-                    ${game.desc ? `
-                        <div class="detail-desc">
-                            <div class="label">Description</div>
-                            ${escapeHtml(game.desc)}
-                        </div>
-                    ` : ''}
-                </div>
+                <div class="detail-body" id="detailBody">${viewBody}</div>
             `;
 
             // Attach click handlers to media sidebar buttons
@@ -809,6 +1613,19 @@
             });
 
             document.getElementById('detailOverlay').classList.add('open');
+        }
+
+        function switchToEdit() {
+            document.getElementById('detailBody').innerHTML = window._editBody;
+        }
+
+        async function switchToView(gameId) {
+            // Re-fetch game data and re-render in view mode
+            const game = currentGames.find(g => g.id === gameId);
+            if (game) {
+                closeDetail();
+                openDetail(gameId);
+            }
         }
 
         function closeDetail() {
@@ -901,7 +1718,12 @@
 
         // --- Keyboard ---
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') closeDetail();
+            if (e.key === 'Escape') {
+                if (document.getElementById('confirmOverlay').classList.contains('open')) closeConfirm();
+                else if (document.getElementById('importOverlay').classList.contains('open')) closeImportModal();
+                else if (document.getElementById('imgEditorOverlay').classList.contains('open')) closeImgEditor();
+                else closeDetail();
+            }
         });
 
         // --- Utils ---
@@ -925,6 +1747,529 @@
             toast.textContent = msg;
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // --- Image Editor ---
+        let _imgEditorState = { field: 'image', gameId: null, mode: null, file: null, url: '', browsePath: null };
+
+        function openImgEditor(field, gameId) {
+            _imgEditorState = { field, gameId, mode: null, file: null, url: '', browsePath: null };
+            document.getElementById('imgEditorTitle').textContent = `🖼️ Edit ${field.charAt(0).toUpperCase() + field.slice(1)}`;
+            clearUpload();
+            document.getElementById('imageUrlInput').value = '';
+            document.getElementById('urlPreview').style.display = 'none';
+            document.getElementById('applyImageBtn').disabled = true;
+            switchImgTab('upload');
+            document.getElementById('imgEditorOverlay').classList.add('open');
+            loadBrowseImages();
+        }
+
+        function closeImgEditor() {
+            document.getElementById('imgEditorOverlay').classList.remove('open');
+        }
+
+        function switchImgTab(tab) {
+            document.querySelectorAll('.img-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            _imgEditorState.mode = tab;
+            updateApplyBtn();
+        }
+
+        function updateApplyBtn() {
+            const btn = document.getElementById('applyImageBtn');
+            if (_imgEditorState.mode === 'upload') {
+                btn.disabled = !_imgEditorState.file;
+            } else if (_imgEditorState.mode === 'url') {
+                btn.disabled = !_imgEditorState.url;
+            } else if (_imgEditorState.mode === 'browse') {
+                btn.disabled = !_imgEditorState.browsePath;
+            } else {
+                btn.disabled = true;
+            }
+        }
+
+        // Upload tab
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) { showToast('Please select an image file'); return; }
+            _imgEditorState.file = file;
+            dropZone.style.display = 'none';
+            const preview = document.getElementById('uploadPreview');
+            preview.style.display = 'flex';
+            document.getElementById('uploadFileName').textContent = file.name;
+            document.getElementById('uploadFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+            const reader = new FileReader();
+            reader.onload = e => { document.getElementById('uploadPreviewImg').src = e.target.result; };
+            reader.readAsDataURL(file);
+            _imgEditorState.mode = 'upload';
+            updateApplyBtn();
+        }
+
+        function clearUpload() {
+            _imgEditorState.file = null;
+            fileInput.value = '';
+            dropZone.style.display = '';
+            document.getElementById('uploadPreview').style.display = 'none';
+            updateApplyBtn();
+        }
+
+        // URL tab
+        document.getElementById('imageUrlInput').addEventListener('input', e => {
+            _imgEditorState.url = e.target.value.trim();
+            updateApplyBtn();
+        });
+
+        function previewUrl() {
+            const url = _imgEditorState.url;
+            if (!url) return;
+            const preview = document.getElementById('urlPreview');
+            const img = document.getElementById('urlPreviewImg');
+            img.onload = () => { preview.style.display = 'block'; };
+            img.onerror = () => { preview.style.display = 'none'; showToast('Could not load image from URL'); };
+            img.src = url;
+        }
+
+        // Browse tab
+        async function loadBrowseImages() {
+            if (!currentSystem) return;
+            const container = document.getElementById('fileBrowser');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            try {
+                const res = await fetch(`/api/systems/${currentSystem.id}/browse-images`);
+                const files = await res.json();
+                if (files.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-secondary);font-size:0.85rem;text-align:center;grid-column:1/-1">No images found in this system.</p>';
+                    return;
+                }
+                container.innerHTML = files.map(f => `
+                    <div class="file-item" data-path="${escapeHtml(f.path)}" onclick="selectBrowseFile(this, '${escapeHtml(f.path)}')">
+                        <img src="${f.api_path}" loading="lazy" onerror="this.style.display='none'">
+                        <div class="fname">${escapeHtml(f.name)}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<p style="color:var(--danger);font-size:0.85rem">Failed to load images.</p>';
+            }
+        }
+
+        function selectBrowseFile(el, path) {
+            document.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+            _imgEditorState.browsePath = path;
+            _imgEditorState.mode = 'browse';
+            updateApplyBtn();
+        }
+
+        // Apply
+        async function applyImage() {
+            const { field, gameId, mode, file, url, browsePath } = _imgEditorState;
+            const btn = document.getElementById('applyImageBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                let res;
+                if (mode === 'upload' && file) {
+                    const form = new FormData();
+                    form.append('file', file);
+                    form.append('field', field);
+                    res = await fetch(`/api/systems/${currentSystem.id}/games/${gameId}/image`, { method: 'POST', body: form });
+                } else if (mode === 'url' && url) {
+                    res = await fetch(`/api/systems/${currentSystem.id}/games/${gameId}/image?field=${field}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url })
+                    });
+                } else if (mode === 'browse' && browsePath) {
+                    res = await fetch(`/api/systems/${currentSystem.id}/games/${gameId}/image?field=${field}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path: browsePath })
+                    });
+                } else {
+                    showToast('No image selected');
+                    return;
+                }
+
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`✅ ${data.message}`);
+                    closeImgEditor();
+                    closeDetail();
+                    await selectSystem(currentSystem.id);
+                } else {
+                    showToast(`❌ ${data.description || 'Error saving image'}`);
+                }
+            } catch (e) {
+                showToast('❌ Network error');
+            } finally {
+                btn.textContent = 'Apply Image';
+                updateApplyBtn();
+            }
+        }
+
+        // Remove image
+        async function removeImage(field, gameId) {
+            if (!confirm(`Remove ${field} from this game?`)) return;
+            try {
+                const res = await fetch(`/api/systems/${currentSystem.id}/games/${gameId}/image?field=${field}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`✅ ${data.message}`);
+                    closeDetail();
+                    await selectSystem(currentSystem.id);
+                } else {
+                    showToast(`❌ ${data.description || 'Error removing image'}`);
+                }
+            } catch (e) {
+                showToast('❌ Network error');
+            }
+        }
+
+        // --- Import ROM Modal ---
+        let _importState = { mode: 'ifile', selectedRom: null, file: null };
+        let _allRoms = [];
+
+        function openImportModal() {
+            if (!currentSystem) return;
+            _importState = { mode: 'ifile', selectedRom: null, file: null };
+            document.getElementById('romFilter').value = '';
+            document.getElementById('romHideAdded').checked = true;
+            document.getElementById('romUrlInput').value = '';
+            document.getElementById('importSubdirUpload').value = '';
+            document.getElementById('importSubdirUrl').value = '';
+            clearImportUpload();
+            switchImportTab('ifile');
+            document.getElementById('importBtn').disabled = true;
+            document.getElementById('importOverlay').classList.add('open');
+            loadRomList();
+        }
+
+        function closeImportModal() {
+            document.getElementById('importOverlay').classList.remove('open');
+        }
+
+        function switchImportTab(tab) {
+            document.querySelectorAll('#importOverlay .img-tab').forEach(t =>
+                t.classList.toggle('active', t.dataset.tab === tab));
+            document.querySelectorAll('#importOverlay .tab-content').forEach(c =>
+                c.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            _importState.mode = tab;
+            updateImportBtn();
+        }
+
+        function updateImportBtn() {
+            const btn = document.getElementById('importBtn');
+            if (_importState.mode === 'ifile') {
+                btn.disabled = !_importState.selectedRom;
+            } else if (_importState.mode === 'iupload') {
+                btn.disabled = !_importState.file;
+            } else if (_importState.mode === 'iurl') {
+                btn.disabled = !document.getElementById('romUrlInput').value.trim();
+            } else {
+                btn.disabled = true;
+            }
+        }
+
+        async function loadRomList() {
+            if (!currentSystem) return;
+            const container = document.getElementById('romList');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            try {
+                const res = await fetch(`/api/systems/${currentSystem.id}/browse-roms`);
+                _allRoms = await res.json();
+                renderRomList();
+            } catch (e) {
+                container.innerHTML = '<p style="color:var(--danger);font-size:0.85rem;padding:16px">Failed to load ROM list.</p>';
+            }
+        }
+
+        function renderRomList() {
+            const container = document.getElementById('romList');
+            const filter = (document.getElementById('romFilter').value || '').toLowerCase();
+            const hideAdded = document.getElementById('romHideAdded').checked;
+
+            let filtered = _allRoms;
+            if (filter) {
+                filtered = filtered.filter(r =>
+                    r.name.toLowerCase().includes(filter) ||
+                    r.filename.toLowerCase().includes(filter) ||
+                    (r.subdir || '').toLowerCase().includes(filter));
+            }
+            if (hideAdded) {
+                filtered = filtered.filter(r => !r.listed);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-secondary);font-size:0.85rem;text-align:center;padding:20px">No ROMs found.</p>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(r => {
+                const isSelected = _importState.selectedRom && _importState.selectedRom.path === r.path;
+                const sizeKB = (r.size / 1024).toFixed(0);
+                const sizeMB = (r.size / (1024 * 1024)).toFixed(1);
+                const sizeStr = r.size > 1048576 ? `${sizeMB} MB` : `${sizeKB} KB`;
+                return `
+                    <div class="rom-list-item ${r.listed ? 'listed' : ''} ${isSelected ? 'selected' : ''}"
+                         onclick="${r.listed ? '' : `selectRom(this, ${JSON.stringify(r.path).replace(/"/g, '&quot;')})`}">
+                        <div class="rom-info">
+                            <div class="rom-name">${escapeHtml(r.name)}</div>
+                            <div class="rom-path">${escapeHtml(r.path)}</div>
+                        </div>
+                        <span class="rom-size">${sizeStr}</span>
+                        ${r.listed ? '<span class="rom-badge added">IN LIST</span>' : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectRom(el, path) {
+            const rom = _allRoms.find(r => r.path === path);
+            if (!rom) return;
+            _importState.selectedRom = rom;
+            _importState.mode = 'ifile';
+            document.querySelectorAll('.rom-list-item').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById('romSelection').textContent = `Selected: ${rom.filename}`;
+            updateImportBtn();
+        }
+
+        // ROM filter listeners
+        document.getElementById('romFilter').addEventListener('input', renderRomList);
+        document.getElementById('romHideAdded').addEventListener('change', renderRomList);
+
+        // Upload tab
+        const importDropZone = document.getElementById('importDropZone');
+        const importFileInput = document.getElementById('importFileInput');
+
+        importDropZone.addEventListener('click', () => importFileInput.click());
+        importDropZone.addEventListener('dragover', e => { e.preventDefault(); importDropZone.classList.add('dragover'); });
+        importDropZone.addEventListener('dragleave', () => importDropZone.classList.remove('dragover'));
+        importDropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            importDropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleImportFile(e.dataTransfer.files[0]);
+        });
+        importFileInput.addEventListener('change', () => {
+            if (importFileInput.files.length) handleImportFile(importFileInput.files[0]);
+        });
+
+        function handleImportFile(file) {
+            _importState.file = file;
+            _importState.mode = 'iupload';
+            importDropZone.style.display = 'none';
+            const preview = document.getElementById('importUploadPreview');
+            preview.style.display = 'flex';
+            document.getElementById('importFileName').textContent = file.name;
+            document.getElementById('importFileSize').textContent = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+            updateImportBtn();
+        }
+
+        function clearImportUpload() {
+            _importState.file = null;
+            importFileInput.value = '';
+            importDropZone.style.display = '';
+            document.getElementById('importUploadPreview').style.display = 'none';
+            updateImportBtn();
+        }
+
+        // URL input listener
+        document.getElementById('romUrlInput').addEventListener('input', updateImportBtn);
+
+        // Import action
+        async function importRom() {
+            if (!currentSystem) return;
+            const btn = document.getElementById('importBtn');
+            btn.disabled = true;
+            btn.textContent = 'Importing...';
+
+            try {
+                let res;
+                if (_importState.mode === 'ifile' && _importState.selectedRom) {
+                    // Scenario A: ROM already on filesystem
+                    res = await fetch(`/api/systems/${currentSystem.id}/import`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path: _importState.selectedRom.path })
+                    });
+                } else if (_importState.mode === 'iupload' && _importState.file) {
+                    // Scenario B: file upload
+                    const form = new FormData();
+                    form.append('file', _importState.file);
+                    const subdir = document.getElementById('importSubdirUpload').value.trim();
+                    if (subdir) form.append('subdir', subdir);
+                    res = await fetch(`/api/systems/${currentSystem.id}/import`, {
+                        method: 'POST',
+                        body: form
+                    });
+                } else if (_importState.mode === 'iurl') {
+                    // Scenario C: URL download
+                    const url = document.getElementById('romUrlInput').value.trim();
+                    const subdir = document.getElementById('importSubdirUrl').value.trim();
+                    if (!url) { showToast('Please enter a URL'); return; }
+                    res = await fetch(`/api/systems/${currentSystem.id}/import`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url, subdir })
+                    });
+                } else {
+                    showToast('No ROM selected');
+                    return;
+                }
+
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`✅ ${data.message}`);
+                    closeImportModal();
+                    await selectSystem(currentSystem.id);
+                } else {
+                    showToast(`❌ ${data.description || 'Import failed'}`);
+                }
+            } catch (e) {
+                showToast('❌ Network error');
+            } finally {
+                btn.textContent = 'Import ROM';
+                updateImportBtn();
+            }
+        }
+
+        // --- Save Game Details ---
+        async function saveGameDetails(gameId) {
+            const toStoredDate = (v) => {
+                if (!v) return '';
+                return v.replace(/-/g, '') + 'T000000';
+            };
+
+            const payload = {};
+            const fields = [
+                'name', 'desc', 'genre', 'developer', 'publisher',
+                'players', 'lang', 'region', 'sortname',
+                'emulator', 'core', 'hash', 'web', 'system', 'software', 'provider',
+            ];
+
+            // Text fields
+            for (const f of fields) {
+                const el = document.getElementById(`edit_${f}`);
+                if (el) payload[f] = el.value.trim();
+            }
+
+            // Number fields
+            for (const f of ['rating', 'playcount', 'gametime']) {
+                const el = document.getElementById(`edit_${f}`);
+                if (el) payload[f] = el.value.trim();
+            }
+
+            // Date fields
+            for (const f of ['releasedate', 'lastplayed']) {
+                const el = document.getElementById(`edit_${f}`);
+                if (el) {
+                    const v = el.value.trim();
+                    payload[f] = v ? toStoredDate(v) : '';
+                }
+            }
+
+            // Checkbox fields
+            const hiddenEl = document.getElementById('edit_hidden');
+            if (hiddenEl) payload.hidden = hiddenEl.checked ? 'true' : '';
+
+            try {
+                const res = await fetch(`/api/systems/${currentSystem.id}/games/${gameId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('✅ Game details saved');
+                    await selectSystem(currentSystem.id);
+                    openDetail(gameId);
+                } else {
+                    showToast(`❌ ${data.description || 'Save failed'}`);
+                }
+            } catch (e) {
+                showToast('❌ Network error');
+            }
+        }
+
+        // --- Favorite Toggle ---
+        async function toggleFavorite(gameId, btn) {
+            try {
+                const res = await fetch(`/api/systems/${currentSystem.id}/games/${gameId}/favorite`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    const isFav = data.favorite;
+                    btn.classList.toggle('active', isFav);
+                    btn.innerHTML = `${isFav ? '⭐' : '☆'} Favorite`;
+                    // Update local data
+                    const game = currentGames.find(g => g.id === gameId);
+                    if (game) game.favorite = isFav ? 'true' : '';
+                    showToast(isFav ? '⭐ Added to favorites' : 'Removed from favorites');
+                } else {
+                    showToast(`❌ ${data.description || 'Error'}`);
+                }
+            } catch (e) {
+                showToast('❌ Network error');
+            }
+        }
+
+        // --- Delete Game ---
+        let _pendingDeleteGameId = null;
+
+        function confirmDeleteGame(gameId, gameName) {
+            _pendingDeleteGameId = gameId;
+            document.getElementById('confirmTitle').textContent = '🗑️ Remove Game';
+            document.getElementById('confirmMessage').innerHTML =
+                `Remove <b>${escapeHtml(gameName)}</b> from the gamelist?`;
+            document.getElementById('confirmExtra').style.display = 'block';
+            document.getElementById('confirmDeleteFiles').checked = false;
+            document.getElementById('confirmOverlay').classList.add('open');
+        }
+
+        function closeConfirm() {
+            document.getElementById('confirmOverlay').classList.remove('open');
+            _pendingDeleteGameId = null;
+        }
+
+        async function confirmOk() {
+            if (_pendingDeleteGameId === null) return;
+            const gameId = _pendingDeleteGameId;
+            const deleteFiles = document.getElementById('confirmDeleteFiles').checked;
+            closeConfirm();
+
+            try {
+                const res = await fetch(`/api/systems/${currentSystem.id}/games/${gameId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ delete_files: deleteFiles })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    const fileMsg = data.deleted_files && data.deleted_files.length
+                        ? ` (${data.deleted_files.length} file(s) deleted)` : '';
+                    showToast(`✅ ${data.message}${fileMsg}`);
+                    closeDetail();
+                    await selectSystem(currentSystem.id);
+                } else {
+                    showToast(`❌ ${data.description || 'Error'}`);
+                }
+            } catch (e) {
+                showToast('❌ Network error');
+            }
         }
 
         // --- Init ---
