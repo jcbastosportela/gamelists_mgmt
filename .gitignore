@@ -1,3 +1,28 @@
-.venv
-build
-dist
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+*.spec.bak
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# PyInstaller
+*.manifest
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

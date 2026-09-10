@@ -220,6 +220,32 @@ def serve_media(filepath):
     return response
 
 
+@app.route("/api/open/<path:filepath>")
+def open_with_system(filepath):
+    """Open a file with the system's default application."""
+    import subprocess
+    full_path = Path(ROM_ROOT) / filepath
+    if not full_path.exists():
+        abort(404, description="File not found")
+    if not full_path.is_file():
+        abort(404, description="Not a file")
+
+    try:
+        if sys.platform == "linux":
+            subprocess.Popen(["xdg-open", str(full_path)],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", str(full_path)],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif sys.platform == "win32":
+            os.startfile(str(full_path))
+        else:
+            abort(500, description="Unsupported platform")
+        return jsonify({"status": "ok", "message": f"Opened {full_path.name}"})
+    except Exception as e:
+        abort(500, description=str(e))
+
+
 if __name__ == "__main__":
     import argparse
 

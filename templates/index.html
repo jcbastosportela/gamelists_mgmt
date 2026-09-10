@@ -725,11 +725,25 @@
             if (game.image) mediaItems.push({ type: 'image', src: game.image, label: '🖼️ Screenshot' });
             if (game.thumbnail) mediaItems.push({ type: 'image', src: game.thumbnail, label: '🖼️ Thumb' });
             if (game.mix) mediaItems.push({ type: 'image', src: game.mix, label: '🖼️ Mix' });
-            if (game.video) mediaItems.push({ type: 'video', src: game.video, label: '🎬 Video' });
+            if (game.video) {
+                const ext = game.video.split('.').pop().split('?')[0].toLowerCase();
+                const playable = ['mp4', 'webm', 'ogg', 'ogv'].includes(ext);
+                // Extract raw path for system open (strip /api/media/ prefix)
+                const rawPath = game.video.replace(/^\/api\/media\//, '');
+                mediaItems.push({ type: 'video', src: game.video, label: '🎬 Video', ext, playable, rawPath });
+            }
 
             const mainMedia = mediaItems.length > 0
                 ? (mediaItems[0].type === 'video'
-                    ? `<video src="${mediaItems[0].src}" controls preload="metadata" playsinline></video>`
+                    ? (mediaItems[0].playable
+                        ? `<video src="${mediaItems[0].src}" controls preload="metadata" playsinline></video>`
+                        : `<div style="text-align:center;padding:40px;color:var(--text-secondary)">
+                             <div style="font-size:3rem;margin-bottom:12px">🎬</div>
+                             <div style="font-size:1.1rem;margin-bottom:8px">.<b>${escapeHtml(mediaItems[0].ext)}</b> format is not supported in browsers</div>
+                             <button onclick="openWithSystem('${escapeHtml(mediaItems[0].rawPath)}')" style="margin-top:16px;padding:10px 24px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.9rem;font-weight:600;cursor:pointer">
+                                 🖥️ Open in System Player
+                             </button>
+                           </div>`)
                     : `<img src="${mediaItems[0].src}" alt="${escapeHtml(game.name)}">`)
                 : '<div style="font-size:4rem;opacity:0.2">🎮</div>';
 
@@ -770,7 +784,7 @@
                                 <div class="thumb-btn ${i === 0 ? 'active' : ''}" data-media-idx="${i}">
                                     ${m.type === 'image'
                                         ? `<img src="${m.src}" onerror="this.parentElement.innerHTML='<div class=label>${m.label}</div>'">`
-                                        : `<div class="label">${m.label}</div>`}
+                                        : `<div class="label">${m.playable ? '▶' : '⚠️'} ${m.ext || 'video'}</div>`}
                                 </div>
                             `).join('')}
                         </div>
@@ -816,19 +830,44 @@
             const oldVideo = main.querySelector('video');
             if (oldVideo) oldVideo.pause();
             if (item.type === 'video') {
-                const v = document.createElement('video');
-                v.src = item.src;
-                v.controls = true;
-                v.preload = 'metadata';
-                v.playsInline = true;
-                main.innerHTML = '';
-                main.appendChild(v);
+                if (item.playable) {
+                    const v = document.createElement('video');
+                    v.src = item.src;
+                    v.controls = true;
+                    v.preload = 'metadata';
+                    v.playsInline = true;
+                    main.innerHTML = '';
+                    main.appendChild(v);
+                } else {
+                    main.innerHTML = `
+                        <div style="text-align:center;padding:40px;color:var(--text-secondary)">
+                            <div style="font-size:3rem;margin-bottom:12px">🎬</div>
+                            <div style="font-size:1.1rem;margin-bottom:8px">.<b>${escapeHtml(item.ext)}</b> format is not supported in browsers</div>
+                            <button onclick="openWithSystem('${escapeHtml(item.rawPath)}')" style="margin-top:16px;padding:10px 24px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:0.9rem;font-weight:600;cursor:pointer">
+                                🖥️ Open in System Player
+                             </button>
+                        </div>`;
+                }
             } else {
                 const img = document.createElement('img');
                 img.src = item.src;
                 img.alt = 'Game media';
                 main.innerHTML = '';
                 main.appendChild(img);
+            }
+        }
+
+        async function openWithSystem(rawPath) {
+            try {
+                const res = await fetch(`/api/open/${rawPath}`);
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`Opening ${rawPath.split('/').pop()} in system player...`);
+                } else {
+                    showToast(`Error: ${data.description || 'Failed to open file'}`);
+                }
+            } catch (e) {
+                showToast('Error: Could not connect to server');
             }
         }
 
