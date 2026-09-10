@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROM Manager</title>
+    <style>
+        :root {
+            --bg-primary: #0f0f14;
+            --bg-secondary: #1a1a24;
+            --bg-card: #22222e;
+            --bg-hover: #2a2a3a;
+            --accent: #7c5cfc;
+            --accent-light: #9b82fc;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8888a0;
+            --text-muted: #555570;
+            --border: #2e2e40;
+            --success: #4cda8a;
+            --warning: #f0a050;
+            --danger: #e05050;
+            --radius: 10px;
+            --shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .app {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            min-width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-search {
+            padding: 12px 20px;
+        }
+
+        .sidebar-search input {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .sidebar-search input:focus {
+            border-color: var(--accent);
+        }
+
+        .system-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 8px;
+        }
+
+        .system-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-bottom: 2px;
+        }
+
+        .system-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .system-item.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .system-item .name {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .system-item .count {
+            font-size: 0.75rem;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .system-item.active .count {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        /* Main content */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-secondary);
+        }
+
+        .toolbar h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .toolbar .game-count {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .toolbar .spacer { flex: 1; }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 8px 12px 8px 34px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            width: 260px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent);
+        }
+
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8rem;
+        }
+
+        .view-toggle {
+            display: flex;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .view-toggle button {
+            padding: 7px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.15s;
+        }
+
+        .view-toggle button.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* Game grid */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .game-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .game-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .game-card .thumb {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .game-card .thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .game-card .thumb .placeholder {
+            font-size: 2.5rem;
+            opacity: 0.3;
+        }
+
+        .game-card .thumb .video-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 0.65rem;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .game-card .info {
+            padding: 12px;
+        }
+
+        .game-card .info .title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .game-card .info .meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* List view */
+        .game-list .game-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .game-list .game-row:hover {
+            background: var(--bg-hover);
+        }
+
+        .game-row .thumb-small {
+            width: 60px;
+            height: 45px;
+            border-radius: 4px;
+            background: var(--bg-primary);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .game-row .thumb-small img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .game-row .info { flex: 1; min-width: 0; }
+        .game-row .info .title { font-size: 0.9rem; font-weight: 500; }
+        .game-row .info .subtitle { font-size: 0.75rem; color: var(--text-secondary); }
+        .game-row .tags { display: flex; gap: 6px; flex-shrink: 0; }
+        .game-row .tag {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+        }
+
+        /* Detail Panel */
+        .detail-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .detail-overlay.open { display: flex; }
+
+        .detail-panel {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .detail-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: var(--bg-primary);
+            border: none;
+            color: var(--text-primary);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+
+        .detail-close:hover { background: var(--danger); }
+
+        .detail-media {
+            display: flex;
+            gap: 0;
+            background: var(--bg-primary);
+            border-radius: 16px 16px 0 0;
+            overflow: hidden;
+        }
+
+        .detail-media .media-main {
+            flex: 1;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detail-media .media-main img {
+            max-width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+        }
+
+        .detail-media .media-main video {
+            max-width: 100%;
+            max-height: 400px;
+            background: #000;
+            border-radius: 4px;
+        }
+
+        .detail-media .media-sidebar {
+            width: 160px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .media-sidebar .thumb-btn {
+            width: 100%;
+            aspect-ratio: 4/3;
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.15s;
+            background: var(--bg-card);
+        }
+
+        .media-sidebar .thumb-btn.active { border-color: var(--accent); }
+        .media-sidebar .thumb-btn img { width: 100%; height: 100%; object-fit: cover; }
+        .media-sidebar .thumb-btn .label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .detail-body {
+            padding: 24px;
+        }
+
+        .detail-body h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .detail-body .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+        }
+
+        .detail-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .meta-item {
+            background: var(--bg-primary);
+            padding: 10px 14px;
+            border-radius: 8px;
+        }
+
+        .meta-item .label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .meta-item .value {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .detail-desc {
+            background: var(--bg-primary);
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+        }
+
+        .detail-desc .label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        /* Welcome state */
+        .welcome {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .welcome .icon { font-size: 4rem; margin-bottom: 16px; opacity: 0.4; }
+        .welcome h2 { font-size: 1.3rem; margin-bottom: 8px; color: var(--text-primary); }
+        .welcome p { font-size: 0.9rem; max-width: 400px; }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--success);
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 200;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>🎮 ROM Manager</h1>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" id="systemSearch" placeholder="Search systems...">
+            </div>
+            <div class="system-list" id="systemList">
+                <div class="loading"><div class="spinner"></div> Loading...</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main">
+            <div class="toolbar" id="toolbar" style="display:none;">
+                <h2 id="systemTitle"></h2>
+                <span class="game-count" id="gameCount"></span>
+                <div class="spacer"></div>
+                <div class="search-box">
+                    <input type="text" id="gameSearch" placeholder="Search games...">
+                </div>
+                <div class="view-toggle">
+                    <button class="active" data-view="grid" onclick="setView('grid')">▦ Grid</button>
+                    <button data-view="list" onclick="setView('list')">☰ List</button>
+                </div>
+            </div>
+            <div class="content" id="content">
+                <div class="welcome">
+                    <div class="icon">🎮</div>
+                    <h2>Welcome to ROM Manager</h2>
+                    <p>Select a system from the sidebar to browse and manage your game collection.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Overlay -->
+    <div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+        <div class="detail-panel" id="detailPanel"></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let systems = [];
+        let currentSystem = null;
+        let currentGames = [];
+        let filteredGames = [];
+        let currentView = 'grid';
+
+        // --- API ---
+        async function fetchSystems() {
+            const res = await fetch('/api/systems');
+            return res.json();
+        }
+
+        async function fetchGames(systemId) {
+            const res = await fetch(`/api/systems/${systemId}/games`);
+            return res.json();
+        }
+
+        // --- Render Systems ---
+        function renderSystems(filter = '') {
+            const list = document.getElementById('systemList');
+            const filtered = systems.filter(s =>
+                s.name.toLowerCase().includes(filter.toLowerCase()) ||
+                s.id.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            list.innerHTML = filtered.map(s => `
+                <div class="system-item ${currentSystem?.id === s.id ? 'active' : ''}"
+                     onclick="selectSystem('${s.id}')">
+                    <span class="name">${escapeHtml(s.name)}</span>
+                    <span class="count">${s.game_count}</span>
+                </div>
+            `).join('');
+        }
+
+        // --- Select System ---
+        async function selectSystem(systemId) {
+            const system = systems.find(s => s.id === systemId);
+            if (!system) return;
+            currentSystem = system;
+            renderSystems(document.getElementById('systemSearch').value);
+
+            document.getElementById('toolbar').style.display = 'flex';
+            document.getElementById('systemTitle').textContent = system.name;
+            document.getElementById('gameSearch').value = '';
+
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="loading"><div class="spinner"></div> Loading games...</div>';
+
+            currentGames = await fetchGames(systemId);
+            filteredGames = currentGames;
+            document.getElementById('gameCount').textContent = `${currentGames.length} games`;
+            renderGames();
+        }
+
+        // --- Render Games ---
+        function renderGames() {
+            const content = document.getElementById('content');
+
+            if (currentView === 'grid') {
+                content.innerHTML = `<div class="game-grid">${filteredGames.map((g, i) => `
+                    <div class="game-card" onclick="openDetail(${g.id})">
+                        <div class="thumb">
+                            ${g.image
+                                ? `<img src="${g.image}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=placeholder>🎮</div>'">`
+                                : '<div class="placeholder">🎮</div>'}
+                            ${g.video ? '<span class="video-badge">▶ VIDEO</span>' : ''}
+                        </div>
+                        <div class="info">
+                            <div class="title" title="${escapeHtml(g.name || g.path)}">${escapeHtml(g.name || g.path)}</div>
+                            <div class="meta">
+                                ${g.genre ? `<span>${escapeHtml(g.genre)}</span>` : ''}
+                                ${g.rating ? `<span>⭐ ${parseFloat(g.rating).toFixed(1)}</span>` : ''}
+                                ${g.players ? `<span>👤 ${escapeHtml(g.players)}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}</div>`;
+            } else {
+                content.innerHTML = `<div class="game-list">${filteredGames.map((g, i) => `
+                    <div class="game-row" onclick="openDetail(${g.id})">
+                        <div class="thumb-small">
+                            ${g.image
+                                ? `<img src="${g.image}" loading="lazy" onerror="this.style.display='none'">`
+                                : ''}
+                        </div>
+                        <div class="info">
+                            <div class="title">${escapeHtml(g.name || g.path)}</div>
+                            <div class="subtitle">${escapeHtml(g.path || '')}</div>
+                        </div>
+                        <div class="tags">
+                            ${g.genre ? `<span class="tag">${escapeHtml(g.genre)}</span>` : ''}
+                            ${g.developer ? `<span class="tag">${escapeHtml(g.developer)}</span>` : ''}
+                            ${g.releasedate ? `<span class="tag">${formatDate(g.releasedate)}</span>` : ''}
+                        </div>
+                    </div>
+                `).join('')}</div>`;
+            }
+        }
+
+        // --- Detail Panel ---
+        function openDetail(gameId) {
+            const game = currentGames.find(g => g.id === gameId);
+            if (!game) return;
+
+            const panel = document.getElementById('detailPanel');
+            const mediaItems = [];
+            if (game.image) mediaItems.push({ type: 'image', src: game.image, label: '🖼️ Screenshot' });
+            if (game.thumbnail) mediaItems.push({ type: 'image', src: game.thumbnail, label: '🖼️ Thumb' });
+            if (game.mix) mediaItems.push({ type: 'image', src: game.mix, label: '🖼️ Mix' });
+            if (game.video) mediaItems.push({ type: 'video', src: game.video, label: '🎬 Video' });
+
+            const mainMedia = mediaItems.length > 0
+                ? (mediaItems[0].type === 'video'
+                    ? `<video src="${mediaItems[0].src}" controls preload="metadata" playsinline></video>`
+                    : `<img src="${mediaItems[0].src}" alt="${escapeHtml(game.name)}">`)
+                : '<div style="font-size:4rem;opacity:0.2">🎮</div>';
+
+            const metaFields = [
+                { key: 'genre', label: 'Genre' },
+                { key: 'developer', label: 'Developer' },
+                { key: 'publisher', label: 'Publisher' },
+                { key: 'releasedate', label: 'Release Date', format: formatDate },
+                { key: 'players', label: 'Players' },
+                { key: 'rating', label: 'Rating', format: v => `⭐ ${parseFloat(v).toFixed(1)}` },
+                { key: 'lang', label: 'Language' },
+                { key: 'region', label: 'Region' },
+                { key: 'playcount', label: 'Play Count' },
+                { key: 'lastplayed', label: 'Last Played', format: formatDate },
+                { key: 'gametime', label: 'Game Time', format: v => `${Math.floor(v/60)}h ${v%60}m` },
+                { key: 'favorite', label: 'Favorite' },
+            ];
+
+            const metaHtml = metaFields
+                .filter(f => game[f.key])
+                .map(f => `
+                    <div class="meta-item">
+                        <div class="label">${f.label}</div>
+                        <div class="value">${f.format ? f.format(game[f.key]) : escapeHtml(game[f.key])}</div>
+                    </div>
+                `).join('');
+
+            // Store media items globally so switchMedia can access them safely
+            window._mediaItems = mediaItems;
+
+            panel.innerHTML = `
+                <button class="detail-close" onclick="closeDetail()">✕</button>
+                <div class="detail-media">
+                    <div class="media-main" id="mediaMain">${mainMedia}</div>
+                    ${mediaItems.length > 1 ? `
+                        <div class="media-sidebar" id="mediaSidebar">
+                            ${mediaItems.map((m, i) => `
+                                <div class="thumb-btn ${i === 0 ? 'active' : ''}" data-media-idx="${i}">
+                                    ${m.type === 'image'
+                                        ? `<img src="${m.src}" onerror="this.parentElement.innerHTML='<div class=label>${m.label}</div>'">`
+                                        : `<div class="label">${m.label}</div>`}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="detail-body">
+                    <h2>${escapeHtml(game.name || '')}</h2>
+                    <div class="subtitle">${escapeHtml(game.path || '')}</div>
+                    ${metaHtml ? `<div class="detail-meta">${metaHtml}</div>` : ''}
+                    ${game.desc ? `
+                        <div class="detail-desc">
+                            <div class="label">Description</div>
+                            ${escapeHtml(game.desc)}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            // Attach click handlers to media sidebar buttons
+            document.querySelectorAll('#mediaSidebar .thumb-btn').forEach(btn => {
+                btn.addEventListener('click', () => switchMedia(btn));
+            });
+
+            document.getElementById('detailOverlay').classList.add('open');
+        }
+
+        function closeDetail() {
+            document.getElementById('detailOverlay').classList.remove('open');
+            // Stop any playing video
+            const video = document.querySelector('#detailPanel video');
+            if (video) video.pause();
+        }
+
+        function switchMedia(btn) {
+            const idx = parseInt(btn.dataset.mediaIdx);
+            const item = window._mediaItems[idx];
+            if (!item) return;
+
+            document.querySelectorAll('.thumb-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const main = document.getElementById('mediaMain');
+            // Stop any currently playing video first
+            const oldVideo = main.querySelector('video');
+            if (oldVideo) oldVideo.pause();
+            if (item.type === 'video') {
+                const v = document.createElement('video');
+                v.src = item.src;
+                v.controls = true;
+                v.preload = 'metadata';
+                v.playsInline = true;
+                main.innerHTML = '';
+                main.appendChild(v);
+            } else {
+                const img = document.createElement('img');
+                img.src = item.src;
+                img.alt = 'Game media';
+                main.innerHTML = '';
+                main.appendChild(img);
+            }
+        }
+
+        // --- View Toggle ---
+        function setView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-toggle button').forEach(b => {
+                b.classList.toggle('active', b.dataset.view === view);
+            });
+            renderGames();
+        }
+
+        // --- Search ---
+        document.getElementById('systemSearch').addEventListener('input', e => {
+            renderSystems(e.target.value);
+        });
+
+        document.getElementById('gameSearch').addEventListener('input', e => {
+            const q = e.target.value.toLowerCase();
+            filteredGames = currentGames.filter(g =>
+                (g.name || '').toLowerCase().includes(q) ||
+                (g.path || '').toLowerCase().includes(q) ||
+                (g.genre || '').toLowerCase().includes(q) ||
+                (g.developer || '').toLowerCase().includes(q) ||
+                (g.publisher || '').toLowerCase().includes(q)
+            );
+            document.getElementById('gameCount').textContent =
+                `${filteredGames.length} of ${currentGames.length} games`;
+            renderGames();
+        });
+
+        // --- Keyboard ---
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeDetail();
+        });
+
+        // --- Utils ---
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function formatDate(str) {
+            if (!str) return '';
+            // Format: 20170811T071250
+            if (/^\d{8}T\d{6}$/.test(str)) {
+                const y = str.slice(0,4), m = str.slice(4,6), d = str.slice(6,8);
+                return `${y}-${m}-${d}`;
+            }
+            return str;
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // --- Init ---
+        (async () => {
+            systems = await fetchSystems();
+            renderSystems();
+        })();
+    </script>
+</body>
+</html>
