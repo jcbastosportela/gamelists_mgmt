@@ -29,7 +29,11 @@ python app.py /path/to/your/roms
 3. Test locally: `python app.py /path/to/roms`
 4. Test the build: `./build.sh && ./dist/rom-manager --no-browser`
 5. Commit and push
-6. Open a Pull Request
+6. Open a Pull Request against `main`
+7. Label the PR for the release: add exactly one of `patch` / `minor` / `major`
+   so CI can version the next release — or use `no_impact` for changes that
+   should skip the release entirely (e.g. README/docs-only edits). The `check`
+   job blocks merging without one of these labels.
 
 ## Guidelines
 
@@ -38,6 +42,8 @@ python app.py /path/to/your/roms
 - Frontend changes go in `templates/index.html`
 - Test against real gamelist.xml files when possible
 - Follow existing code style
+- Label docs-only / non-user-facing changes (README, CI config, etc.) with `no_impact`
+  so merging them does not cut a new release
 
 ## Ideas for Contributions
 

@@ -1,13 +1,15 @@
 name: Release
 
 # Single workflow for versioning + releases:
-# - Open PRs: `check` fails unless exactly one of patch|minor|major is set
-#   (make it a required status check to block merge).
-# - Push to main: `release` finds the merged PR for the new tip commit via
-#   the API, reads its (already validated) single version label, bumps the
-#   version, tags GITHUB_SHA itself, builds the binary and publishes the
-#   GitHub release. Running on `push` means checkout IS main's tip (nothing
-#   to resolve) and the run shows as a status on the main commit.
+# - Open PRs: `check` fails unless the PR has exactly one of patch|minor|major
+#   (release on merge) or the `no_impact` label (skip release, e.g. docs-only
+#   changes). Make it a required status check to block merge.
+# - Push to main: `release` finds the merged PR for the new tip commit via the
+#   API and reads its labels. PRs labeled `no_impact` skip the release entirely
+#   (job passes, no tag/build/publish); any other PR bumps the version from its
+#   single version label, tags GITHUB_SHA itself, builds the binary and
+#   publishes the GitHub release. Running on `push` means checkout IS main's tip
+#   (nothing to resolve) and the run shows as a status on the main commit.
 # - Manual: `rebuild` re-builds/publishes an existing tag on demand.
 on:
   pull_request:
@@ -23,7 +25,8 @@ on:
 
 jobs:
   # Runs on open PRs: fails unless the PR has exactly one of
-  # patch | minor | major. Make this a required status check in
+  # patch | minor | major (release on merge) or the `no_impact`
+  # label (skip release). Make this a required status check in
   # branch protection so merge is blocked otherwise.
   check:
     if: github.event_name == 'pull_request'
@@ -34,7 +37,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Require exactly one version label
+      - name: Require exactly one version label or no_impact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -52,16 +55,28 @@ jobs:
             fi
           done
 
+          # `no_impact` → no release on merge (docs-only changes, etc.).
+          if echo ",$LABELS," | grep -Eq ",no_impact,"; then
+            if [ "$COUNT" -ge 1 ]; then
+              echo "::error::PR #$PR_NUMBER has both 'no_impact' and a version label (patch/minor/major) — apply exactly one: a version label to release, or 'no_impact' to skip the release."
+              exit 1
+            fi
+            echo "no_impact label OK — merge will skip the release (no version bump, tag, build, or publish)."
+            exit 0
+          fi
+
           if [ "$COUNT" -ne 1 ]; then
-            echo "::error::PR #$PR_NUMBER must have exactly one version label: patch, minor, or major (found $COUNT). Labels: [$LABELS]"
+            echo "::error::PR #$PR_NUMBER must have exactly one version label: patch, minor, or major (found $COUNT) — or the 'no_impact' label to skip the release. Labels: [$LABELS]"
             exit 1
           fi
           echo "Version label OK: $BUMP"
 
-  # Runs on push to main: bumps the version from the merged PR's single
-  # version label, tags the pushed commit itself, builds the binary and
-  # publishes the GitHub release. Checkout on `push` IS main's tip, so no
-  # SHA resolution games — and the run reports status on the main commit.
+  # Runs on push to main. Detects the merged PR for the tip commit and reads its
+  # labels: a `no_impact` PR skips the release (job passes, nothing published);
+  # otherwise it bumps the version from the merged PR's single version label,
+  # tags the pushed commit itself, builds the binary and publishes the GitHub
+  # release. Checkout on `push` IS main's tip, so no SHA resolution games — the
+  # run reports status on the main commit.
   release:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -74,7 +89,39 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Detect merged PR and release intent (no_impact skips)
+        id: detect
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          echo "Target (push tip): $TARGET_SHA"
+
+          # Find the merged PR that introduced the tip commit. `--merged`
+          # restricts to merged PRs, so a direct push (no PR) yields nothing
+          # and fails below instead of guessing a version.
+          PR_NUMBER=$(gh pr list --state merged --search "$TARGET_SHA" --limit 1 --json number --jq '.[0].number // empty')
+          if [ -z "$PR_NUMBER" ]; then
+            echo "::error::No merged PR found for commit $TARGET_SHA. Pushes to main must come from a merged PR."
+            exit 1
+          fi
+          PR_TITLE=$(gh pr view "$PR_NUMBER" --json title --jq '.title')
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name] | join(",") | ascii_downcase')
+          echo "PR #$PR_NUMBER title: $PR_TITLE"
+          echo "PR #$PR_NUMBER labels: $LABELS"
+
+          # `no_impact` → skip the release entirely (docs-only changes, etc.).
+          if echo ",$LABELS," | grep -Eq ",no_impact,"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "### Skipping release — PR #$PR_NUMBER is labeled \`no_impact\`: $PR_TITLE" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
       - name: Compute next version and push tag
+        if: steps.detect.outputs.skip != 'true'
         id: ver
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -142,16 +189,19 @@ jobs:
           echo "### Bumped $LATEST → $NEW_TAG ($BUMP)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up Python
+        if: steps.detect.outputs.skip != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install dependencies
+        if: steps.detect.outputs.skip != 'true'
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller flask lxml
 
       - name: Build binary with PyInstaller
+        if: steps.detect.outputs.skip != 'true'
         run: |
           pyinstaller --clean --noconfirm rom-manager.spec
           mv dist/rom-manager "dist/rom-manager-${{ steps.ver.outputs.new_tag }}-linux-x86_64"
@@ -161,6 +211,7 @@ jobs:
       # *other* workflow runs on tag creation — fine now, because the release
       # is published in this same run instead of a separate workflow.
       - name: Publish GitHub release
+        if: steps.detect.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
           files: |
