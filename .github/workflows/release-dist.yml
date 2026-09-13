@@ -2,8 +2,13 @@ name: Release ROM Manager Binary
 
 on:
   push:
-    branches: [main]
+    tags: ['v*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to (re)build a release for (e.g. v1.2.3)'
+        required: false
+        default: ''
 
 jobs:
   build-and-release:
@@ -15,6 +20,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "value=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ inputs.tag }}" ]; then
+            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Manual runs require the 'tag' input (e.g. v1.2.3)."
+            exit 1
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,16 +48,16 @@ jobs:
       - name: Build binary with PyInstaller
         run: |
           pyinstaller --clean --noconfirm rom-manager.spec
+          mv dist/rom-manager "dist/rom-manager-${{ steps.tag.outputs.value }}-linux-x86_64"
+          ls -lh dist/
 
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/rom-manager
-          tag_name: build-${{ github.sha }}
-          name: ROM Manager build-${{ github.sha }}
-          body: |
-            Automated release of ROM Manager binary.
-            Built on Ubuntu Latest.
+            dist/rom-manager-${{ steps.tag.outputs.value }}-linux-x86_64
+          tag_name: ${{ steps.tag.outputs.value }}
+          name: ROM Manager ${{ steps.tag.outputs.value }}
+          generate_release_notes: true
           draft: false
           prerelease: false

@@ -1,0 +1,114 @@
+name: Auto Version Tag
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, edited, closed]
+    branches: [main]
+
+jobs:
+  # Runs on open PRs: fails unless the PR has exactly one of
+  # patch | minor | major. Make this a required status check in
+  # branch protection so merge is blocked otherwise.
+  check:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Require exactly one version label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name] | join(",") | ascii_downcase')
+          echo "PR #$PR_NUMBER labels: $LABELS"
+
+          COUNT=0
+          BUMP=""
+          for CAND in patch minor major; do
+            if echo ",$LABELS," | grep -Eq ",${CAND},"; then
+              COUNT=$((COUNT + 1))
+              BUMP="$CAND"
+            fi
+          done
+
+          if [ "$COUNT" -ne 1 ]; then
+            echo "::error::PR #$PR_NUMBER must have exactly one version label: patch, minor, or major (found $COUNT). Labels: [$LABELS]"
+            exit 1
+          fi
+          echo "Version label OK: $BUMP"
+
+  # Runs at merge to main: creates and pushes the next vX.Y.Z tag
+  # from the (already validated) single version label.
+  version:
+    # Only run for merged PRs (not just closed)
+    if: github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version and push tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name] | join(",") | ascii_downcase')
+          echo "PR #$PR_NUMBER title: $PR_TITLE"
+          echo "PR #$PR_NUMBER labels: $LABELS"
+
+          # Strict: exactly one of patch | minor | major (enforced pre-merge
+          # by the check job, re-validated here to fail safe).
+          COUNT=0
+          BUMP=""
+          for CAND in patch minor major; do
+            if echo ",$LABELS," | grep -Eq ",${CAND},"; then
+              COUNT=$((COUNT + 1))
+              BUMP="$CAND"
+            fi
+          done
+
+          if [ "$COUNT" -ne 1 ]; then
+            echo "::error::PR #$PR_NUMBER must have exactly one version label: patch, minor, or major (found $COUNT). Labels: [$LABELS]"
+            exit 1
+          fi
+          echo "Bump: $BUMP"
+
+          LATEST=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST"
+          VERSION=${LATEST#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          MAJOR=${MAJOR:-0}; MINOR=${MINOR:-0}; PATCH=${PATCH:-0}
+
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "New tag: $NEW_TAG"
+
+          if git ls-remote --tags origin "refs/tags/${NEW_TAG}" | grep -q "${NEW_TAG}"; then
+            echo "::error::Tag ${NEW_TAG} already exists on origin (concurrent merge?). Re-run the job to compute the next version."
+            exit 1
+          fi
+
+          git tag "$NEW_TAG" -m "Release $NEW_TAG (PR #$PR_NUMBER: $PR_TITLE)"
+          git push origin "$NEW_TAG"
+          echo "### Bumped $LATEST → $NEW_TAG ($BUMP)" >> "$GITHUB_STEP_SUMMARY"
