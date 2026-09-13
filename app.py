@@ -31,6 +31,25 @@ app = Flask(
 # Configurable root path - defaults to EEROMS
 ROM_ROOT = os.environ.get("ROM_ROOT", "/run/media/portela/EEROMS")
 
+# Return API errors as JSON so the frontend can read ``description``.
+@app.errorhandler(400)
+@app.errorhandler(404)
+@app.errorhandler(500)
+def handle_http_error(e):
+    return jsonify({"description": e.description}), e.code
+
+# Helpers for the ROM root selection feature (candidate mounts + persistence).
+try:
+    from rom_manager.rom_root import _candidate_mounts, save_root  # noqa: E402
+except ImportError:  # frozen binary: package may be bundled top-level
+    try:
+        from rom_root import _candidate_mounts, save_root  # type: ignore
+    except ImportError:  # graceful degradation if neither is available
+        def _candidate_mounts():
+            return []
+        def save_root(rom_root):
+            pass
+
 
 def get_systems():
     """List all system directories that contain a gamelist.xml."""
@@ -143,6 +162,33 @@ def serve_sw():
 @app.route("/api/systems")
 def api_systems():
     return jsonify(get_systems())
+
+
+@app.route("/api/rom-root", methods=["GET"])
+def api_get_rom_root():
+    """Return the current ROM root and detected storage-location candidates."""
+    return jsonify({
+        "rom_root": str(ROM_ROOT),
+        "candidates": [str(p) for p in _candidate_mounts()],
+    })
+
+
+@app.route("/api/rom-root", methods=["POST"])
+def api_set_rom_root():
+    """Switch the ROM root directory at runtime and persist the choice."""
+    data = request.get_json(silent=True) or {}
+    raw = (data.get("path") or "").strip()
+    if not raw:
+        abort(400, description="No path provided")
+
+    root = Path(raw).expanduser().resolve()
+    if not root.is_dir():
+        abort(400, description=f"Not a directory: {root}")
+
+    global ROM_ROOT
+    ROM_ROOT = str(root)
+    save_root(ROM_ROOT)
+    return jsonify({"message": f"ROM root changed to {ROM_ROOT}", "rom_root": ROM_ROOT})
 
 
 @app.route("/api/systems/<system_id>/games")
@@ -786,21 +832,28 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="ROM Manager (dev mode — opens in browser)")
-    parser.add_argument("rom_root", nargs="?", default=os.environ.get("ROM_ROOT", "/run/media/portela/EEROMS"),
-                        help="Path to ROM root directory (default: $ROM_ROOT or /run/media/portela/EEROMS)")
+    parser.add_argument("rom_root", nargs="?", default=None,
+                        help="Path to ROM root directory (default: $ROM_ROOT, saved config, or /run/media/portela/EEROMS; prompts interactively if not found)")
     parser.add_argument("--port", type=int, default=5000, help="Port (default: 5000)")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
+    parser.add_argument("--no-browser", action="store_true",
+                        help="Don't open a window/browser (server only)")
     args = parser.parse_args()
 
-    ROM_ROOT = args.rom_root
-    if not Path(ROM_ROOT).exists():
-        print(f"❌ Error: ROM root path does not exist: {ROM_ROOT}")
+    from rom_manager.rom_root import resolve_rom_root
+    rom_root = resolve_rom_root(cli_value=args.rom_root)
+    if rom_root is None:
+        print("❌ Error: no ROM root directory available.")
+        print("   Pass the path as an argument, set the ROM_ROOT environment variable,")
+        print("   or select a directory when prompted.")
         sys.exit(1)
+    ROM_ROOT = str(rom_root)
 
     url = f"http://{args.host}:{args.port}"
     print(f"🎮 ROM Manager (dev mode)")
     print(f"📂 ROM Root: {ROM_ROOT}")
     print(f"🌐 {url}")
     print(f"   For native desktop window: python -m rom_manager.main")
-    threading.Timer(1.0, lambda: webbrowser.open(url)).start()
+    if not args.no_browser:
+        threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     app.run(debug=False, host=args.host, port=args.port)

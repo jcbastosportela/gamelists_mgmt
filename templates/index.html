@@ -57,6 +57,10 @@
         .sidebar-header {
             padding: 20px;
             border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
         }
 
         .sidebar-header h1 {
@@ -68,6 +72,27 @@
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+
+        .rom-root-btn {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .rom-root-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
         }
 
         .sidebar-search {
@@ -744,6 +769,60 @@
             padding: 20px 24px;
         }
 
+        /* ROM root modal */
+        .rom-root-current {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            word-break: break-all;
+        }
+
+        .rom-root-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .rom-root-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 0.88rem;
+            word-break: break-all;
+        }
+
+        .rom-root-item:hover { background: var(--bg-hover); }
+
+        .rom-root-custom {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .rom-root-custom input {
+            flex: 1;
+            padding: 10px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .rom-root-custom input:focus { border-color: var(--accent); }
+
         .img-tabs {
             display: flex;
             gap: 4px;
@@ -1168,6 +1247,7 @@
         <div class="sidebar">
             <div class="sidebar-header">
                 <h1>🎮 ROM Manager</h1>
+                <button class="rom-root-btn" onclick="openRomRootModal()" title="Change ROM root directory">📂</button>
             </div>
             <div class="sidebar-search">
                 <input type="text" id="systemSearch" placeholder="Search systems...">
@@ -1210,6 +1290,29 @@
 
     <!-- Toast -->
     <div class="toast" id="toast"></div>
+
+    <!-- ROM Root Modal -->
+    <div class="img-editor-overlay" id="romRootOverlay" onclick="if(event.target===this)closeRomRootModal()">
+        <div class="img-editor">
+            <div class="img-editor-header">
+                <h3>📂 ROM Root Directory</h3>
+                <button class="close-btn" onclick="closeRomRootModal()">✕</button>
+            </div>
+            <div class="img-editor-body">
+                <div class="rom-root-label">Current directory (where the emulator systems live)</div>
+                <div class="rom-root-current" id="romRootCurrent">…</div>
+
+                <div class="rom-root-label">Detected storage locations</div>
+                <div id="romRootCandidates"></div>
+
+                <div class="rom-root-custom">
+                    <input type="text" id="romRootInput" placeholder="/path/to/roms"
+                           onkeydown="if(event.key==='Enter')applyRomRootFromInput()">
+                    <button class="btn-primary" onclick="applyRomRootFromInput()" style="padding:10px 16px">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Image Editor Overlay -->
     <div class="img-editor-overlay" id="imgEditorOverlay" onclick="if(event.target===this)closeImgEditor()">
@@ -2287,6 +2390,91 @@
                 }
             } catch (e) {
                 showToast('❌ Network error');
+            }
+        }
+
+        // --- ROM Root ---
+        function openRomRootModal() {
+            document.getElementById('romRootOverlay').classList.add('open');
+            loadRomRootInfo();
+        }
+
+        function closeRomRootModal() {
+            document.getElementById('romRootOverlay').classList.remove('open');
+        }
+
+        async function loadRomRootInfo() {
+            try {
+                const res = await fetch('/api/rom-root');
+                const data = await res.json();
+
+                const current = document.getElementById('romRootCurrent');
+                current.textContent = data.rom_root;
+
+                const container = document.getElementById('romRootCandidates');
+                container.innerHTML = '';
+                const candidates = (data.candidates || []).filter(c => c !== data.rom_root);
+                if (candidates.length === 0) {
+                    const p = document.createElement('p');
+                    p.textContent = 'No other storage locations detected.';
+                    p.style.cssText = 'color:var(--text-secondary);font-size:0.85rem';
+                    container.appendChild(p);
+                    return;
+                }
+                candidates.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = 'rom-root-item';
+                    item.textContent = '💾 ' + c;
+                    item.onclick = () => applyRomRoot(c);
+                    container.appendChild(item);
+                });
+            } catch (e) {
+                showToast('❌ Could not load ROM root info');
+            }
+        }
+
+        async function applyRomRoot(path) {
+            path = (path || '').trim();
+            if (!path) { showToast('⚠️ Enter a directory path'); return; }
+            try {
+                const res = await fetch('/api/rom-root', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`✅ ${data.message}`);
+                    closeRomRootModal();
+                    await reloadAfterRootChange();
+                } else {
+                    showToast(`❌ ${data.description || 'Error'}`);
+                }
+            } catch (e) {
+                showToast('❌ Network error');
+            }
+        }
+
+        function applyRomRootFromInput() {
+            applyRomRoot(document.getElementById('romRootInput').value);
+        }
+
+        async function reloadAfterRootChange() {
+            systems = await fetchSystems();
+            renderSystems(document.getElementById('systemSearch').value);
+            if (currentSystem && systems.some(s => s.id === currentSystem.id)) {
+                await selectSystem(currentSystem.id);
+            } else {
+                // Selected system doesn't exist under the new root — reset the view
+                currentSystem = null;
+                document.getElementById('toolbar').style.display = 'none';
+                const content = document.getElementById('content');
+                content.innerHTML = `
+                    <div class="welcome">
+                        <div class="icon">🎮</div>
+                        <h2>Welcome to ROM Manager</h2>
+                        <p>Select a system from the sidebar to browse and manage your game collection.</p>
+                    </div>`;
             }
         }
 
