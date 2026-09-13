@@ -35,8 +35,8 @@ jobs:
         with:
           files: |
             dist/rom-manager
-          tag_name: ${{ github.sha }}
-          name: ROM Manager v${{ github.sha }}
+          tag_name: build-${{ github.sha }}
+          name: ROM Manager build-${{ github.sha }}
           body: |
             Automated release of ROM Manager binary.
             Built on Ubuntu Latest.
