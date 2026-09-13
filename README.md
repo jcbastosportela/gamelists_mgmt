@@ -54,7 +54,7 @@ python app.py /path/to/your/roms
 ./rom-manager [ROM_ROOT] [OPTIONS]
 
 Positional:
-  rom_root              Path to ROM root directory (default: $ROM_ROOT or /run/media/portela/EEROMS)
+  rom_root              Path to ROM root directory (default: $ROM_ROOT, saved config, or /run/media/portela/EEROMS)
 
 Options:
   --port PORT           Port to listen on (default: auto)
@@ -62,6 +62,22 @@ Options:
   --width WIDTH         Window width (default: 1280)
   --height HEIGHT       Window height (default: 800)
 ```
+
+### ROM root selection
+
+The ROM root (the directory containing the emulator system folders) is
+resolved in this order — the first one that exists wins:
+
+1. The `rom_root` CLI argument
+2. The `ROM_ROOT` environment variable
+3. The last interactively selected directory (`~/.config/rom-manager/config.json`)
+4. The hardcoded default (`/run/media/portela/EEROMS`)
+
+If none of them exists, the app asks you to pick the directory: mounted
+storage locations (under `/run/media`, `/media`, `/mnt`) are offered as a
+numbered list, or you can type a custom path.  The selection is saved so
+the next launch starts without prompting.
+
 
 ## Supported Media
 

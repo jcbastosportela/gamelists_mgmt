@@ -786,16 +786,20 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="ROM Manager (dev mode — opens in browser)")
-    parser.add_argument("rom_root", nargs="?", default=os.environ.get("ROM_ROOT", "/run/media/portela/EEROMS"),
-                        help="Path to ROM root directory (default: $ROM_ROOT or /run/media/portela/EEROMS)")
+    parser.add_argument("rom_root", nargs="?", default=None,
+                        help="Path to ROM root directory (default: $ROM_ROOT, saved config, or /run/media/portela/EEROMS; prompts interactively if not found)")
     parser.add_argument("--port", type=int, default=5000, help="Port (default: 5000)")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
     args = parser.parse_args()
 
-    ROM_ROOT = args.rom_root
-    if not Path(ROM_ROOT).exists():
-        print(f"❌ Error: ROM root path does not exist: {ROM_ROOT}")
+    from rom_manager.rom_root import resolve_rom_root
+    rom_root = resolve_rom_root(cli_value=args.rom_root)
+    if rom_root is None:
+        print("❌ Error: no ROM root directory available.")
+        print("   Pass the path as an argument, set the ROM_ROOT environment variable,")
+        print("   or select a directory when prompted.")
         sys.exit(1)
+    ROM_ROOT = str(rom_root)
 
     url = f"http://{args.host}:{args.port}"
     print(f"🎮 ROM Manager (dev mode)")

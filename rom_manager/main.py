@@ -18,6 +18,8 @@ import time
 import argparse
 from pathlib import Path
 
+from .rom_root import resolve_rom_root
+
 # Ensure the project root is importable so ``from app import app`` works
 # regardless of how the binary / script is invoked.
 _project_root = Path(__file__).resolve().parent.parent
@@ -107,7 +109,7 @@ def _parse_args():
     )
     parser.add_argument(
         "rom_root", nargs="?", default=None,
-        help="Path to ROM root directory (default: $ROM_ROOT or /run/media/portela/EEROMS)",
+        help="Path to ROM root directory (default: $ROM_ROOT, saved config, or /run/media/portela/EEROMS; prompts interactively if not found)",
     )
     parser.add_argument("--port", type=int, default=0, help="Port (default: auto-select)")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
@@ -121,11 +123,13 @@ def _parse_args():
 def main():
     args = _parse_args()
 
-    rom_root = args.rom_root or os.environ.get("ROM_ROOT", "/run/media/portela/EEROMS")
-    if not Path(rom_root).exists():
-        print(f"❌ Error: ROM root path does not exist: {rom_root}")
-        print("   Pass the path as an argument or set the ROM_ROOT environment variable.")
+    rom_root = resolve_rom_root(cli_value=args.rom_root)
+    if rom_root is None:
+        print("❌ Error: no ROM root directory available.")
+        print("   Pass the path as an argument, set the ROM_ROOT environment variable,")
+        print("   or select a directory when prompted.")
         sys.exit(1)
+    rom_root = str(rom_root)
 
     # Import and configure the Flask app
     from app import app as flask_app  # noqa: F811
