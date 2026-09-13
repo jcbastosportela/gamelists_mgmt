@@ -14,38 +14,38 @@ A web-based manager for browsing and editing [EmulationStation](https://emulatio
 
 ## Quick Start
 
-### Run from source
+### Setup & Build (recommended)
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install flask lxml
-
-# Default ROM path: /run/media/portela/EEROMS
-python app.py
-
-# Custom ROM path
-python app.py /path/to/your/roms
-
-# Custom port
-python app.py --port 8080
+./setup.sh
 ```
 
-Then open http://localhost:5000 in your browser.
+This single script:
+1. Installs system dependencies (WebKitGTK for the native window)
+2. Creates a Python virtual environment
+3. Installs all Python packages
+4. Builds a standalone binary at `dist/rom-manager`
+5. Creates a desktop shortcut — find **"ROM Manager"** in your app menu
 
-### Build standalone executable
-
-```bash
-./build.sh
-```
-
-This creates a single executable at `dist/rom-manager`:
+Then launch from your app menu, or:
 
 ```bash
 ./dist/rom-manager                          # Default ROM path
 ./dist/rom-manager /path/to/roms            # Custom ROM path
-./dist/rom-manager --port 8080              # Custom port
-./dist/rom-manager --no-browser             # Don't auto-open browser
+```
+
+### Run from source (development)
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Native desktop window (requires pywebview + WebKitGTK)
+python -m rom_manager.main /path/to/your/roms
+
+# Browser-based (dev mode)
+python app.py /path/to/your/roms
 ```
 
 ## Usage
@@ -54,12 +54,13 @@ This creates a single executable at `dist/rom-manager`:
 ./rom-manager [ROM_ROOT] [OPTIONS]
 
 Positional:
-  rom_root              Path to ROM root directory (default: /run/media/portela/EEROMS)
+  rom_root              Path to ROM root directory (default: $ROM_ROOT or /run/media/portela/EEROMS)
 
 Options:
-  --port PORT           Port to listen on (default: 5000)
+  --port PORT           Port to listen on (default: auto)
   --host HOST           Host to bind to (default: 127.0.0.1)
-  --no-browser          Don't auto-open browser
+  --width WIDTH         Window width (default: 1280)
+  --height HEIGHT       Window height (default: 800)
 ```
 
 ## Supported Media
@@ -86,19 +87,25 @@ Options:
 
 ```
 .
-├── app.py              # Flask backend
+├── app.py                  # Flask backend (routes + API)
+├── rom_manager/
+│   ├── __init__.py
+│   └── main.py             # Native window launcher (pywebview)
 ├── templates/
-│   └── index.html      # Single-page frontend
-├── static/             # Static assets
-├── rom-manager.spec    # PyInstaller build config
-├── build.sh            # Build script
-└── dist/               # Build output (gitignored)
+│   └── index.html          # Single-page frontend
+├── static/                 # Static assets (icons, manifest, SW)
+├── requirements.txt        # Python dependencies
+├── setup.sh                # Full setup: system deps + venv + build + shortcut
+├── build.sh                # Alias for setup.sh
+├── rom-manager.spec        # PyInstaller build config
+└── dist/                   # Build output (gitignored)
 ```
 
 ## Tech Stack
 
 - **Backend:** Python, Flask, lxml
 - **Frontend:** Vanilla HTML/CSS/JS (no build step)
+- **Native window:** pywebview (WebKitGTK on Linux)
 - **Packaging:** PyInstaller
 
 ## License

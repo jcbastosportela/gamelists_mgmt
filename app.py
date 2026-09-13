@@ -128,6 +128,18 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/manifest.json")
+def serve_manifest():
+    """Serve the PWA manifest with correct content type."""
+    return send_from_directory(str(BASE_DIR / "static"), "manifest.json", mimetype="application/manifest+json")
+
+
+@app.route("/sw.js")
+def serve_sw():
+    """Serve the service worker from root scope so it can control all routes."""
+    return send_from_directory(str(BASE_DIR / "static"), "sw.js", mimetype="application/javascript")
+
+
 @app.route("/api/systems")
 def api_systems():
     return jsonify(get_systems())
@@ -768,14 +780,16 @@ def open_with_system(filepath):
 
 
 if __name__ == "__main__":
+    # ── Development mode (browser-based) ──
+    # For the native desktop window, use:  python -m rom_manager.main
+    # Or build with:  ./setup.sh
     import argparse
 
-    parser = argparse.ArgumentParser(description="ROM Manager - EmulationStation gamelist viewer & editor")
+    parser = argparse.ArgumentParser(description="ROM Manager (dev mode — opens in browser)")
     parser.add_argument("rom_root", nargs="?", default=os.environ.get("ROM_ROOT", "/run/media/portela/EEROMS"),
-                        help="Path to ROM root directory (default: /run/media/portela/EEROMS)")
-    parser.add_argument("--port", type=int, default=5000, help="Port to listen on (default: 5000)")
-    parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
-    parser.add_argument("--no-browser", action="store_true", help="Don't auto-open browser")
+                        help="Path to ROM root directory (default: $ROM_ROOT or /run/media/portela/EEROMS)")
+    parser.add_argument("--port", type=int, default=5000, help="Port (default: 5000)")
+    parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
     args = parser.parse_args()
 
     ROM_ROOT = args.rom_root
@@ -784,11 +798,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     url = f"http://{args.host}:{args.port}"
-    print(f"🎮 ROM Manager starting...")
+    print(f"🎮 ROM Manager (dev mode)")
     print(f"📂 ROM Root: {ROM_ROOT}")
-    print(f"🌐 Opening {url} in your browser")
-
-    if not args.no_browser:
-        threading.Timer(1.25, lambda: webbrowser.open(url)).start()
-
+    print(f"🌐 {url}")
+    print(f"   For native desktop window: python -m rom_manager.main")
+    threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     app.run(debug=False, host=args.host, port=args.port)

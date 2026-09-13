@@ -5,14 +5,14 @@ block_cipher = None
 base_dir = Path(SPECPATH)
 
 a = Analysis(
-    [str(base_dir / 'app.py')],
+    [str(base_dir / 'rom_manager' / 'main.py')],
     pathex=[str(base_dir)],
     binaries=[],
     datas=[
         (str(base_dir / 'templates'), 'templates'),
         (str(base_dir / 'static'), 'static'),
     ],
-    hiddenimports=['lxml.etree', 'lxml._elementpath'],
+    hiddenimports=['lxml.etree', 'lxml._elementpath', 'app'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

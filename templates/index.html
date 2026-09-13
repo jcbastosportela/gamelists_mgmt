@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ROM Manager</title>
+    <meta name="theme-color" content="#0f0f14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
     <style>
         :root {
             --bg-primary: #0f0f14;
@@ -1015,6 +1019,19 @@
         .subdir-input input:focus { border-color: var(--accent); }
         .subdir-input .hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; }
 
+        /* Fullscreen toggle */
+        .fullscreen-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 7px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.15s;
+        }
+        .fullscreen-btn:hover { border-color: var(--accent); color: var(--accent); }
+
         /* Favorite & Delete */
         .detail-actions-bar {
             display: flex;
@@ -1174,6 +1191,7 @@
                     <button class="active" data-view="grid" onclick="setView('grid')">▦ Grid</button>
                     <button data-view="list" onclick="setView('list')">☰ List</button>
                 </div>
+                <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen">⛶</button>
             </div>
             <div class="content" id="content">
                 <div class="welcome">
@@ -2277,6 +2295,22 @@
             systems = await fetchSystems();
             renderSystems();
         })();
+
+        // --- PWA: Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(err => {
+                console.log('SW registration failed:', err);
+            });
+        }
+
+        // Fullscreen toggle
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen();
+            }
+        }
     </script>
 </body>
 </html>
