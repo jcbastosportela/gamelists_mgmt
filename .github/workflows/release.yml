@@ -1,0 +1,213 @@
+name: Release
+
+# Single workflow for versioning + releases:
+# - Open PRs: `check` fails unless exactly one of patch|minor|major is set
+#   (make it a required status check to block merge).
+# - Push to main: `release` finds the merged PR for the new tip commit via
+#   the API, reads its (already validated) single version label, bumps the
+#   version, tags GITHUB_SHA itself, builds the binary and publishes the
+#   GitHub release. Running on `push` means checkout IS main's tip (nothing
+#   to resolve) and the run shows as a status on the main commit.
+# - Manual: `rebuild` re-builds/publishes an existing tag on demand.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, edited]
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to (re)build a release for (e.g. v1.2.3)'
+        required: true
+
+jobs:
+  # Runs on open PRs: fails unless the PR has exactly one of
+  # patch | minor | major. Make this a required status check in
+  # branch protection so merge is blocked otherwise.
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Require exactly one version label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name] | join(",") | ascii_downcase')
+          echo "PR #$PR_NUMBER labels: $LABELS"
+
+          COUNT=0
+          BUMP=""
+          for CAND in patch minor major; do
+            if echo ",$LABELS," | grep -Eq ",${CAND},"; then
+              COUNT=$((COUNT + 1))
+              BUMP="$CAND"
+            fi
+          done
+
+          if [ "$COUNT" -ne 1 ]; then
+            echo "::error::PR #$PR_NUMBER must have exactly one version label: patch, minor, or major (found $COUNT). Labels: [$LABELS]"
+            exit 1
+          fi
+          echo "Version label OK: $BUMP"
+
+  # Runs on push to main: bumps the version from the merged PR's single
+  # version label, tags the pushed commit itself, builds the binary and
+  # publishes the GitHub release. Checkout on `push` IS main's tip, so no
+  # SHA resolution games — and the run reports status on the main commit.
+  release:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version and push tag
+        id: ver
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          echo "Target (push tip): $TARGET_SHA"
+          git fetch --tags --force
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Find the merged PR that introduced the tip commit. `--merged`
+          # restricts to merged PRs, so a direct push (no PR) yields nothing
+          # and fails below instead of guessing a version.
+          PR_NUMBER=$(gh pr list --state merged --search "$TARGET_SHA" --limit 1 --json number --jq '.[0].number // empty')
+          if [ -z "$PR_NUMBER" ]; then
+            echo "::error::No merged PR found for commit $TARGET_SHA. Pushes to main must come from a PR carrying exactly one version label: patch, minor, or major."
+            exit 1
+          fi
+          PR_TITLE=$(gh pr view "$PR_NUMBER" --json title --jq '.title')
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name] | join(",") | ascii_downcase')
+          echo "PR #$PR_NUMBER title: $PR_TITLE"
+          echo "PR #$PR_NUMBER labels: $LABELS"
+
+          # Strict: exactly one of patch | minor | major (enforced pre-merge
+          # by the check job, re-validated here to fail safe).
+          COUNT=0
+          BUMP=""
+          for CAND in patch minor major; do
+            if echo ",$LABELS," | grep -Eq ",${CAND},"; then
+              COUNT=$((COUNT + 1))
+              BUMP="$CAND"
+            fi
+          done
+
+          if [ "$COUNT" -ne 1 ]; then
+            echo "::error::PR #$PR_NUMBER must have exactly one version label: patch, minor, or major (found $COUNT). Labels: [$LABELS]"
+            exit 1
+          fi
+          echo "Bump: $BUMP"
+
+          LATEST=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST"
+          VERSION=${LATEST#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          MAJOR=${MAJOR:-0}; MINOR=${MINOR:-0}; PATCH=${PATCH:-0}
+
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "New tag: $NEW_TAG"
+
+          if git ls-remote --tags origin "refs/tags/${NEW_TAG}" | grep -q "${NEW_TAG}"; then
+            echo "::error::Tag ${NEW_TAG} already exists on origin (concurrent merge?). Re-run the job to compute the next version."
+            exit 1
+          fi
+
+          git tag "$NEW_TAG" "$TARGET_SHA" -m "Release $NEW_TAG (PR #$PR_NUMBER: $PR_TITLE)"
+          git push origin "$NEW_TAG"
+          echo "new_tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
+          echo "### Bumped $LATEST → $NEW_TAG ($BUMP)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller flask lxml
+
+      - name: Build binary with PyInstaller
+        run: |
+          pyinstaller --clean --noconfirm rom-manager.spec
+          mv dist/rom-manager "dist/rom-manager-${{ steps.ver.outputs.new_tag }}-linux-x86_64"
+          ls -lh dist/
+
+      # NOTE: the tag above is pushed with GITHUB_TOKEN here. That suppresses
+      # *other* workflow runs on tag creation — fine now, because the release
+      # is published in this same run instead of a separate workflow.
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/rom-manager-${{ steps.ver.outputs.new_tag }}-linux-x86_64
+          tag_name: ${{ steps.ver.outputs.new_tag }}
+          name: ROM Manager ${{ steps.ver.outputs.new_tag }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+  # Manual rebuild of an existing tag (e.g. after fixing the build).
+  rebuild:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller flask lxml
+
+      - name: Build binary with PyInstaller
+        run: |
+          pyinstaller --clean --noconfirm rom-manager.spec
+          mv dist/rom-manager "dist/rom-manager-${{ inputs.tag }}-linux-x86_64"
+          ls -lh dist/
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/rom-manager-${{ inputs.tag }}-linux-x86_64
+          tag_name: ${{ inputs.tag }}
+          name: ROM Manager ${{ inputs.tag }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
