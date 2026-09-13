@@ -1,0 +1,210 @@
+name: Release
+
+# Single workflow for versioning + releases:
+# - Open PRs: `check` fails unless exactly one of patch|minor|major is set
+#   (make it a required status check to block merge).
+# - Merged PRs: `release` bumps the version, pushes the vX.Y.Z tag, builds
+#   the binary and publishes the GitHub release — all in one job, because a
+#   tag pushed with GITHUB_TOKEN deliberately does NOT trigger other
+#   workflows (so a separate on-push-tags workflow would never fire).
+# - Manual: `rebuild` re-builds/publishes an existing tag on demand.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, edited, closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to (re)build a release for (e.g. v1.2.3)'
+        required: true
+
+jobs:
+  # Runs on open PRs: fails unless the PR has exactly one of
+  # patch | minor | major. Make this a required status check in
+  # branch protection so merge is blocked otherwise.
+  check:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Require exactly one version label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name] | join(",") | ascii_downcase')
+          echo "PR #$PR_NUMBER labels: $LABELS"
+
+          COUNT=0
+          BUMP=""
+          for CAND in patch minor major; do
+            if echo ",$LABELS," | grep -Eq ",${CAND},"; then
+              COUNT=$((COUNT + 1))
+              BUMP="$CAND"
+            fi
+          done
+
+          if [ "$COUNT" -ne 1 ]; then
+            echo "::error::PR #$PR_NUMBER must have exactly one version label: patch, minor, or major (found $COUNT). Labels: [$LABELS]"
+            exit 1
+          fi
+          echo "Version label OK: $BUMP"
+
+  # Runs at merge to main: creates the next vX.Y.Z tag from the
+  # (already validated) single version label, builds the binary and
+  # publishes the GitHub release in the same job.
+  release:
+    # Only run for merged PRs (not just closed)
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version and push tag
+        id: ver
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          # The default checkout for a `pull_request: closed` event is the
+          # ephemeral test-merge ref (refs/pull/<N>/merge), NOT what actually
+          # landed on main (stale base, squash/rebase/merge-queue all differ).
+          # Resolve the true build/tag target: current tip of main.
+          git fetch origin main --force
+          git fetch --tags --force
+          TARGET_SHA=$(git rev-parse origin/main)
+          echo "Target (origin/main): $TARGET_SHA"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name] | join(",") | ascii_downcase')
+          echo "PR #$PR_NUMBER title: $PR_TITLE"
+          echo "PR #$PR_NUMBER labels: $LABELS"
+
+          # Strict: exactly one of patch | minor | major (enforced pre-merge
+          # by the check job, re-validated here to fail safe).
+          COUNT=0
+          BUMP=""
+          for CAND in patch minor major; do
+            if echo ",$LABELS," | grep -Eq ",${CAND},"; then
+              COUNT=$((COUNT + 1))
+              BUMP="$CAND"
+            fi
+          done
+
+          if [ "$COUNT" -ne 1 ]; then
+            echo "::error::PR #$PR_NUMBER must have exactly one version label: patch, minor, or major (found $COUNT). Labels: [$LABELS]"
+            exit 1
+          fi
+          echo "Bump: $BUMP"
+
+          LATEST=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST"
+          VERSION=${LATEST#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          MAJOR=${MAJOR:-0}; MINOR=${MINOR:-0}; PATCH=${PATCH:-0}
+
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "New tag: $NEW_TAG"
+
+          if git ls-remote --tags origin "refs/tags/${NEW_TAG}" | grep -q "${NEW_TAG}"; then
+            echo "::error::Tag ${NEW_TAG} already exists on origin (concurrent merge?). Re-run the job to compute the next version."
+            exit 1
+          fi
+
+          git tag "$NEW_TAG" "$TARGET_SHA" -m "Release $NEW_TAG (PR #$PR_NUMBER: $PR_TITLE)"
+          git push origin "$NEW_TAG"
+          # Build from what actually landed on main, not the PR test-merge ref
+          git checkout "$TARGET_SHA"
+          echo "new_tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
+          echo "### Bumped $LATEST → $NEW_TAG ($BUMP)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller flask lxml
+
+      - name: Build binary with PyInstaller
+        run: |
+          pyinstaller --clean --noconfirm rom-manager.spec
+          mv dist/rom-manager "dist/rom-manager-${{ steps.ver.outputs.new_tag }}-linux-x86_64"
+          ls -lh dist/
+
+      # NOTE: the tag above was pushed with GITHUB_TOKEN, which deliberately
+      # does NOT trigger other workflows, so the release is published here
+      # in the same job instead of a separate on-push-tags workflow.
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/rom-manager-${{ steps.ver.outputs.new_tag }}-linux-x86_64
+          tag_name: ${{ steps.ver.outputs.new_tag }}
+          name: ROM Manager ${{ steps.ver.outputs.new_tag }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+  # Manual rebuild of an existing tag (e.g. after fixing the build).
+  rebuild:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller flask lxml
+
+      - name: Build binary with PyInstaller
+        run: |
+          pyinstaller --clean --noconfirm rom-manager.spec
+          mv dist/rom-manager "dist/rom-manager-${{ inputs.tag }}-linux-x86_64"
+          ls -lh dist/
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/rom-manager-${{ inputs.tag }}-linux-x86_64
+          tag_name: ${{ inputs.tag }}
+          name: ROM Manager ${{ inputs.tag }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
