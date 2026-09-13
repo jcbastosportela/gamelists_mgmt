@@ -790,6 +790,8 @@ if __name__ == "__main__":
                         help="Path to ROM root directory (default: $ROM_ROOT, saved config, or /run/media/portela/EEROMS; prompts interactively if not found)")
     parser.add_argument("--port", type=int, default=5000, help="Port (default: 5000)")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
+    parser.add_argument("--no-browser", action="store_true",
+                        help="Don't open a window/browser (server only)")
     args = parser.parse_args()
 
     from rom_manager.rom_root import resolve_rom_root
@@ -806,5 +808,6 @@ if __name__ == "__main__":
     print(f"📂 ROM Root: {ROM_ROOT}")
     print(f"🌐 {url}")
     print(f"   For native desktop window: python -m rom_manager.main")
-    threading.Timer(1.0, lambda: webbrowser.open(url)).start()
+    if not args.no_browser:
+        threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     app.run(debug=False, host=args.host, port=args.port)

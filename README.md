@@ -61,6 +61,7 @@ Options:
   --host HOST           Host to bind to (default: 127.0.0.1)
   --width WIDTH         Window width (default: 1280)
   --height HEIGHT       Window height (default: 800)
+  --no-browser          Don't open a window/browser (server only)
 ```
 
 ### ROM root selection

@@ -18,7 +18,10 @@ import time
 import argparse
 from pathlib import Path
 
-from .rom_root import resolve_rom_root
+try:
+    from rom_manager.rom_root import resolve_rom_root  # absolute: works frozen & from source
+except ImportError:  # frozen fallback if the package isn't importable
+    from rom_root import resolve_rom_root  # type: ignore
 
 # Ensure the project root is importable so ``from app import app`` works
 # regardless of how the binary / script is invoked.
@@ -115,6 +118,8 @@ def _parse_args():
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
     parser.add_argument("--width", type=int, default=1280, help="Window width")
     parser.add_argument("--height", type=int, default=800, help="Window height")
+    parser.add_argument("--no-browser", action="store_true",
+                        help="Don't open a window/browser (server only)")
     return parser.parse_args()
 
 
@@ -163,6 +168,14 @@ def main():
 
     # ── Try opening a standalone window ──────────────────────
     is_frozen = getattr(sys, 'frozen', False)
+
+    if args.no_browser:
+        print("(server only — no window/browser opened)")
+        try:
+            server_thread.join()
+        except KeyboardInterrupt:
+            pass
+        return
 
     # Strategy 1: pywebview (native webview — only works from source with GI)
     if not is_frozen:
