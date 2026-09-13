@@ -88,9 +88,13 @@ endpoints (`curl localhost:5000/api/...`) and UI changes in a browser against a 
 ## Release / PR conventions (important when opening PRs)
 
 - Branch names used in this repo: `feature/*`, `docs/*`, `release/*`. PRs target `main`.
-- **PRs must have exactly one** of the labels `patch` / `minor` / `major` — the `check` job
-  in `.github/workflows/release.yml` fails otherwise (treat it as a required status check).
-- On merge to `main`, the `release` job auto-detects the merged PR, bumps the version from
-  that label, tags, builds the PyInstaller binary, and publishes a GitHub release. Direct
-  pushes to `main` are **not** releaseable (no merged PR to derive a version from).
+- **PRs must have exactly one** of the labels `patch` / `minor` / `major` — or the
+  `no_impact` label to skip the release for changes that don't ship a new version
+  (e.g. README/docs-only edits). The `check` job in `.github/workflows/release.yml` fails
+  otherwise (treat it as a required status check).
+- On merge to `main`, the `release` job auto-detects the merged PR. A PR labeled `no_impact`
+  skips the release (no version bump, tag, build, or publish — the job still passes green);
+  otherwise it bumps the version from the version label, tags, builds the PyInstaller binary,
+  and publishes a GitHub release. Direct pushes to `main` are **not** releaseable (no merged
+  PR to derive a version from).
 - `workflow_dispatch` input `tag` lets you rebuild/re-publish an existing tag manually.
