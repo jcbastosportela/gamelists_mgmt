@@ -94,6 +94,8 @@ the next launch starts without prompting.
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/systems` | GET | List all systems with game counts |
+| `/api/rom-root` | GET | Get the current ROM root and detected storage locations |
+| `/api/rom-root` | POST | Change the ROM root directory at runtime (`{"path": "..."}`) and persist the choice |
 | `/api/systems/<id>/games` | GET | Get all games for a system |
 | `/api/systems/<id>/games/<id>` | GET | Get a single game's details |
 | `/api/systems/<id>/games/<id>` | PUT | Update a game entry |

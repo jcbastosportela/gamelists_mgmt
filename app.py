@@ -31,6 +31,25 @@ app = Flask(
 # Configurable root path - defaults to EEROMS
 ROM_ROOT = os.environ.get("ROM_ROOT", "/run/media/portela/EEROMS")
 
+# Return API errors as JSON so the frontend can read ``description``.
+@app.errorhandler(400)
+@app.errorhandler(404)
+@app.errorhandler(500)
+def handle_http_error(e):
+    return jsonify({"description": e.description}), e.code
+
+# Helpers for the ROM root selection feature (candidate mounts + persistence).
+try:
+    from rom_manager.rom_root import _candidate_mounts, save_root  # noqa: E402
+except ImportError:  # frozen binary: package may be bundled top-level
+    try:
+        from rom_root import _candidate_mounts, save_root  # type: ignore
+    except ImportError:  # graceful degradation if neither is available
+        def _candidate_mounts():
+            return []
+        def save_root(rom_root):
+            pass
+
 
 def get_systems():
     """List all system directories that contain a gamelist.xml."""
@@ -143,6 +162,33 @@ def serve_sw():
 @app.route("/api/systems")
 def api_systems():
     return jsonify(get_systems())
+
+
+@app.route("/api/rom-root", methods=["GET"])
+def api_get_rom_root():
+    """Return the current ROM root and detected storage-location candidates."""
+    return jsonify({
+        "rom_root": str(ROM_ROOT),
+        "candidates": [str(p) for p in _candidate_mounts()],
+    })
+
+
+@app.route("/api/rom-root", methods=["POST"])
+def api_set_rom_root():
+    """Switch the ROM root directory at runtime and persist the choice."""
+    data = request.get_json(silent=True) or {}
+    raw = (data.get("path") or "").strip()
+    if not raw:
+        abort(400, description="No path provided")
+
+    root = Path(raw).expanduser().resolve()
+    if not root.is_dir():
+        abort(400, description=f"Not a directory: {root}")
+
+    global ROM_ROOT
+    ROM_ROOT = str(root)
+    save_root(ROM_ROOT)
+    return jsonify({"message": f"ROM root changed to {ROM_ROOT}", "rom_root": ROM_ROOT})
 
 
 @app.route("/api/systems/<system_id>/games")
